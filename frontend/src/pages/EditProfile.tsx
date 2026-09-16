@@ -10,6 +10,7 @@ import { showSuccess, showError } from '@/utils/toast';
 import { AuthService } from '@/services/auth.service';
 import { INDIAN_STATES, STATE_DISTRICTS } from '@/data/locations';
 import { cn } from '@/lib/utils';
+import EntitySearch from '@/components/ui/EntitySearch';
 
 const LEVELS = ['beginner', 'intermediate', 'advanced', 'professional'];
 const CATEGORIES = ["Men's Singles", "Women's Singles", "Men's Doubles", "Women's Doubles", "Mixed Doubles"];
@@ -25,6 +26,8 @@ const EditProfile = () => {
     age:               '',
     playingLevel:      '',
     preferredCategory: '',
+    club:              '',
+    university:        '',
   });
 
   useEffect(() => {
@@ -37,6 +40,8 @@ const EditProfile = () => {
       age:               saved.age               ? String(saved.age) : '',
       playingLevel:      saved.playingLevel      || '',
       preferredCategory: saved.preferredCategory || '',
+      club:              saved.club              || '',
+      university:        saved.university        || '',
     });
   }, []);
 
@@ -53,6 +58,8 @@ const EditProfile = () => {
       age:               form.age ? parseInt(form.age) : undefined,
       playingLevel:      form.playingLevel,
       preferredCategory: form.preferredCategory,
+      club:              form.club,
+      university:        form.university,
     };
 
     try {
@@ -168,6 +175,24 @@ const EditProfile = () => {
               </SelectContent>
             </Select>
           </div>
+
+          {/* Club / Academy */}
+          <EntitySearch
+            type="club" label="Club / Academy"
+            value={form.club}
+            onChange={v => set('club', v)}
+            placeholder="e.g. City Badminton Club"
+            context={{ state: form.state }}
+          />
+
+          {/* University */}
+          <EntitySearch
+            type="university" label="University"
+            value={form.university}
+            onChange={v => set('university', v)}
+            placeholder="e.g. JNTU"
+            context={{ state: form.state }}
+          />
         </div>
 
         <Button onClick={handleSave} disabled={loading}

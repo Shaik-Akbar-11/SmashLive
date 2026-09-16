@@ -28,10 +28,9 @@ const LiveMatch = () => {
       ]);
       setLiveMatches(matches.map((m: any) => ({ ...m, id: m._id || m.id })));
       setLiveTournaments(tourneys.map((t: any) => ({ ...t, id: t._id || t.id })));
-    } catch {
-      setLiveMatches(JSON.parse(localStorage.getItem('active_studio_matches') || '[]'));
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   };
 
   useEffect(() => {

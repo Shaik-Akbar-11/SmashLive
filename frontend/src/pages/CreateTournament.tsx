@@ -9,6 +9,7 @@ import { useNavigate } from 'react-router-dom';
 import { TournamentAPI } from '@/services/api';
 import { showSuccess, showError } from '@/utils/toast';
 import { motion, AnimatePresence } from 'framer-motion';
+import EntitySearch from '@/components/ui/EntitySearch';
 
 const CreateTournament = () => {
   const navigate  = useNavigate();
@@ -102,12 +103,12 @@ const CreateTournament = () => {
 
                 {/* City */}
                 <div className="space-y-1.5">
-                  <Label className="text-[10px] font-black uppercase text-slate-400 ml-1">City / Venue</Label>
-                  <div className="relative">
-                    <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300" />
-                    <Input value={form.city} onChange={e => set('city', e.target.value)}
-                      className="h-12 pl-11 rounded-xl bg-slate-50 border-slate-100 font-bold" placeholder="City" />
-                  </div>
+                  <EntitySearch
+                    type="city" label="City / Venue"
+                    value={form.city}
+                    onChange={v => set('city', v)}
+                    placeholder="e.g. Mumbai"
+                  />
                 </div>
 
                 {/* Dates */}

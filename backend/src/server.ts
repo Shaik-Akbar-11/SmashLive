@@ -13,6 +13,7 @@ import tournamentRoutes from './routes/tournament.routes';
 import matchRoutes from './routes/match.routes';
 import userRoutes from './routes/user.routes';
 import analyticsRoutes from './routes/analytics.routes';
+import entityRoutes from './routes/entity.routes';
 import { notFound, errorHandler } from './middlewares/error.middleware';
 import { initMatchSockets } from './sockets/match.socket';
 import { config } from './config';
@@ -23,6 +24,7 @@ const io = new Server(httpServer, {
   cors: {
     origin: [
       'http://localhost:5173',
+      'http://localhost:8080',
       'http://localhost:3000',
       process.env.FRONTEND_URL || '',
     ].filter(Boolean),
@@ -35,6 +37,7 @@ app.use(helmet());
 app.use(cors({
   origin: [
     'http://localhost:5173',
+    'http://localhost:8080',
     'http://localhost:3000',
     process.env.FRONTEND_URL || '',
   ].filter(Boolean),
@@ -55,6 +58,7 @@ app.use('/api/tournaments', tournamentRoutes);
 app.use('/api/matches', matchRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/analytics', analyticsRoutes);
+app.use('/api/entities', entityRoutes);
 
 app.set('io', io);
 

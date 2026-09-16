@@ -1,6 +1,5 @@
 /**
- * Central API service — replaces all Supabase calls.
- * All data goes through the MongoDB backend.
+ * Central API service — all data through MongoDB backend.
  */
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
@@ -14,13 +13,23 @@ const headers = (extra: Record<string, string> = {}) => ({
 });
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const res = await fetch(`${API_URL}${path}`, {
-    ...options,
-    headers: { ...headers(), ...(options.headers as Record<string, string> || {}) },
-  });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.message || `Request failed: ${path}`);
-  return data as T;
+  const controller = new AbortController();
+  const timeout    = setTimeout(() => controller.abort(), 8000);
+  try {
+    const res = await fetch(`${API_URL}${path}`, {
+      ...options,
+      signal: controller.signal,
+      headers: { ...headers(), ...(options.headers as Record<string, string> || {}) },
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || `Request failed: ${path}`);
+    return data as T;
+  } catch (err: any) {
+    if (err.name === 'AbortError') throw new Error('Request timed out');
+    throw err;
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 // ── Tournaments ──────────────────────────────────────────────────────────────
@@ -75,31 +84,32 @@ export const MatchAPI = {
   getAll: (status?: string) =>
     request<any[]>(`/matches${status ? `?status=${status}` : ''}`),
 
-  getById: (id: string) =>
-    request<any>(`/matches/${id}`),
+  getById: async (id: string) => {
+    try {
+      return await request<any>(`/matches/${id}`);
+    } catch {
+      // Local match (created offline)
+      const local = localStorage.getItem(id);
+      if (local) return JSON.parse(local);
+      throw new Error('Match not found');
+    }
+  },
 
   create: (data: object) =>
     request<any>('/matches', { method: 'POST', body: JSON.stringify(data) }),
 
-  /** Transition match from scheduled → live */
   start: (id: string) =>
     request<any>(`/matches/${id}/start`, { method: 'POST' }),
 
-  /**
-   * Award a point — backend applies badminton rules.
-   * Returns { match, gameCompleted, matchCompleted }
-   */
   scorePoint: (id: string, side: 1 | 2, action = 'point') =>
     request<{ match: any; gameCompleted: boolean; matchCompleted: boolean }>(
       `/matches/${id}/score`,
       { method: 'POST', body: JSON.stringify({ side, action }) }
     ),
 
-  /** Undo the last point */
   undo: (id: string) =>
     request<any>(`/matches/${id}/undo`, { method: 'POST' }),
 
-  /** Manually end a match */
   end: (id: string) =>
     request<any>(`/matches/${id}/end`, { method: 'POST' }),
 
@@ -107,7 +117,7 @@ export const MatchAPI = {
     request<any>(`/matches/${id}`, { method: 'DELETE' }),
 };
 
-// ── Users (Rankings / Social) ────────────────────────────────────────────────
+// ── Users ────────────────────────────────────────────────────────────────────
 
 export const UserAPI = {
   getAll: () => request<any[]>('/users'),
@@ -115,6 +125,16 @@ export const UserAPI = {
   getStats: (id: string) => request<any>(`/users/${id}/stats`),
   getRankings: (scope: 'world' | 'state' = 'world', state?: string) =>
     request<any[]>(`/users/rankings?scope=${scope}${state ? `&state=${encodeURIComponent(state)}` : ''}`),
+};
+
+// ── Entity Autocomplete ───────────────────────────────────────────────────────
+
+export const EntityAPI = {
+  search: (type: 'city' | 'venue' | 'club' | 'university', q: string) =>
+    request<any[]>(`/entities?type=${type}&q=${encodeURIComponent(q)}`),
+
+  create: (type: 'city' | 'venue' | 'club' | 'university', name: string, extra?: { state?: string; city?: string }) =>
+    request<any>('/entities', { method: 'POST', body: JSON.stringify({ type, name, ...extra }) }),
 };
 
 // ── Analytics ────────────────────────────────────────────────────────────────

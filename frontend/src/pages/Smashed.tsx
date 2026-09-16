@@ -14,9 +14,10 @@ const Smashed = () => {
   const [searchParams] = useSearchParams();
   const playerFilter = searchParams.get('player');
   
-  const [items, setItems] = useState<any[]>([]);
+  const [items,   setItems]   = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [query, setQuery] = useState("");
+  const [query,   setQuery]   = useState('');
+  const [tab,     setTab]     = useState<'all' | 'match' | 'tournament'>('all');
 
   const fetchMatches = async () => {
     setLoading(true);
@@ -29,23 +30,26 @@ const Smashed = () => {
         ...tourneys.map((t: any) => ({ ...t, id: t._id || t.id, type: 'tournament' })),
         ...matches.map((m: any) => ({ ...m, id: m._id || m.id, type: 'match' })),
       ];
-      const unique = Array.from(new Set(unified.map(a => a.id))).map(id => unified.find(a => a.id === id));
-      setItems(unique.sort((a: any, b: any) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()));
-    } catch (err) {
-      const localMatches = JSON.parse(localStorage.getItem('active_studio_matches') || '[]');
-      setItems(localMatches.map((m: any) => ({ ...m, type: 'match' })));
+      const unique = Array.from(new Set(unified.map((a: any) => a.id)))
+        .map(id => unified.find((a: any) => a.id === id))
+        .filter(Boolean);
+      setItems(unique.sort((a: any, b: any) =>
+        new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+      ));
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    fetchMatches();
-  }, []);
+  // Re-fetch every time this page is navigated to
+  useEffect(() => { fetchMatches(); }, []);
 
   const filteredItems = useMemo(() => {
     let result = items;
-    
+
+    // Tab filter
+    if (tab !== 'all') result = result.filter(item => item.type === tab);
+
     if (playerFilter) {
       const filter = playerFilter.toLowerCase();
       result = result.filter(item => {
@@ -56,11 +60,14 @@ const Smashed = () => {
 
     if (query) {
       const q = query.toLowerCase();
-      result = result.filter(item => (item.name && item.name.toLowerCase().includes(q)) || (item.city && item.city.toLowerCase().includes(q)));
+      result = result.filter(item =>
+        (item.name && item.name.toLowerCase().includes(q)) ||
+        (item.city && item.city.toLowerCase().includes(q))
+      );
     }
 
     return result;
-  }, [items, playerFilter, query]);
+  }, [items, playerFilter, query, tab]);
 
   const deleteItem = async (id: string, type: 'match' | 'tournament') => {
     if (!confirm(`Delete this ${type}?`)) return;
@@ -102,6 +109,19 @@ const Smashed = () => {
             onChange={(e) => setQuery(e.target.value)}
             className="w-full h-12 pl-11 bg-white border border-slate-100 rounded-xl font-bold text-xs shadow-sm focus:border-sky-500 outline-none"
           />
+        </div>
+
+        <div className="flex gap-2">
+          {(['all', 'match', 'tournament'] as const).map(t => (
+            <button key={t} onClick={() => setTab(t)}
+              className={cn('px-5 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all',
+                tab === t ? 'bg-[#0B1F3A] text-white' : 'bg-white text-slate-400 border border-slate-100')}>
+              {t === 'all' ? 'All' : t === 'match' ? 'Matches' : 'Tournaments'}
+            </button>
+          ))}
+          <button onClick={fetchMatches} className="ml-auto px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest bg-white text-sky-500 border border-sky-100 hover:bg-sky-50 transition-all">
+            Refresh
+          </button>
         </div>
 
         {loading ? (

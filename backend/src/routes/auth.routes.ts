@@ -16,7 +16,7 @@ router.get('/whatsapp-status', authController.whatsappStatus);
 // PATCH /api/auth/profile  — update own profile + complete onboarding
 router.patch('/profile', protect, async (req: any, res) => {
   try {
-    const allowed = ['name', 'gender', 'state', 'district', 'playingLevel', 'preferredCategory', 'age', 'onboardingComplete'];
+    const allowed = ['name', 'gender', 'state', 'district', 'playingLevel', 'preferredCategory', 'age', 'onboardingComplete', 'club', 'university'];
     const update: any = {};
     allowed.forEach(k => { if (req.body[k] !== undefined) update[k] = req.body[k]; });
 

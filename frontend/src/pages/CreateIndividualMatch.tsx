@@ -14,6 +14,7 @@ import { showSuccess, showError } from '@/utils/toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { MatchAPI, UserAPI } from '@/services/api';
+import EntitySearch from '@/components/ui/EntitySearch';
 
 // ── Reused PlayerSlot component (unchanged) ─────────────────────────────────
 const PlayerSlot = ({
@@ -254,48 +255,69 @@ const CreateIndividualMatch = () => {
     const lines  = tossCommentary(p1Name, p2Name, tossCalled, tossResult, tossWinner === 'sideA' ? p1Name : p2Name, tossChoice);
     setCommentary(lines);
     setCommentIdx(0);
-
-    // Wait for commentary to finish showing before creating match
-    const totalDelay = lines.length * 1800 + 600;
-
     setIsCreating(true);
-    setTimeout(async () => {
-      try {
-        const isDoubles = matchType !== 'singles';
-        const finalPlayers = isDoubles
-          ? { sideA: [selectedPlayers.tA1, selectedPlayers.tA2], sideB: [selectedPlayers.tB1, selectedPlayers.tB2] }
-          : { p1: selectedPlayers.p1, p2: selectedPlayers.p2 };
 
-        const created = await MatchAPI.create({
-          name:       config.name,
-          players:    finalPlayers,
-          match_type: matchType,
-          category:   config.category === 'Competitive' ? 'competitive' : 'friendly',
-          court:      config.court,
-          total_sets: parseInt(config.sets),
-          toss: {
-            winner:    tossWinner,
-            result:    tossResult,
-            call:      tossCalled,
-            choice:    tossChoice,
-            official:  config.official,
-            venue:     config.venue,
-            city:      config.city,
-            court_type: config.courtType,
-            date:      config.date,
-            time:      config.time,
-          },
-        });
+    const isDoubles = matchType !== 'singles';
+    const finalPlayers = isDoubles
+      ? { sideA: [selectedPlayers.tA1, selectedPlayers.tA2], sideB: [selectedPlayers.tB1, selectedPlayers.tB2] }
+      : { p1: selectedPlayers.p1, p2: selectedPlayers.p2 };
 
-        const cloudId = created._id || created.id;
-        await MatchAPI.start(cloudId);
-        showSuccess('Match Started!');
-        navigate(`/scoring/${cloudId}`, { replace: true });
-      } catch (err: any) {
-        showError(err.message || 'Failed to create match');
-        setIsCreating(false);
-      }
-    }, totalDelay);
+    const matchPayload = {
+      name:       config.name,
+      players:    finalPlayers,
+      match_type: matchType,
+      category:   config.category === 'Competitive' ? 'competitive' : 'friendly',
+      court:      config.court,
+      total_sets: parseInt(config.sets),
+      toss: {
+        winner:     tossWinner,
+        result:     tossResult,
+        call:       tossCalled,
+        choice:     tossChoice,
+        official:   config.official,
+        venue:      config.venue,
+        city:       config.city,
+        court_type: config.courtType,
+        date:       config.date,
+        time:       config.time,
+      },
+    };
+
+    // Navigate after commentary regardless of backend success
+    const navigateAfterDelay = (matchId: string) => {
+      const delay = Math.max(2000, lines.length * 1600);
+      setTimeout(() => navigate(`/scoring/${matchId}`, { replace: true }), delay);
+    };
+
+    try {
+      const created = await MatchAPI.create(matchPayload);
+      const cloudId = created._id || created.id;
+      await MatchAPI.start(cloudId).catch(() => {});
+      navigateAfterDelay(cloudId);
+    } catch {
+      // Backend unavailable — use local match ID so scoring still works
+      const localId = `local_${Date.now()}`;
+      const localMatch = {
+        ...matchPayload,
+        id: localId,
+        _id: localId,
+        status: 'live',
+        current_score: [0, 0],
+        sets_won: [0, 0],
+        current_game: 1,
+        serving: 1,
+        createdAt: new Date().toISOString(),
+      };
+      localStorage.setItem(localId, JSON.stringify(localMatch));
+      // Add to cache so Smashed/LiveMatch pages can find it
+      const cached = JSON.parse(localStorage.getItem('cache_matches') || '[]');
+      cached.unshift(localMatch);
+      localStorage.setItem('cache_matches', JSON.stringify(cached));
+      const cachedLive = JSON.parse(localStorage.getItem('cache_matches_live') || '[]');
+      cachedLive.unshift(localMatch);
+      localStorage.setItem('cache_matches_live', JSON.stringify(cachedLive));
+      navigateAfterDelay(localId);
+    }
   };
 
   const p1Name = selectedPlayers.p1?.name || selectedPlayers.tA1?.name || 'Side A';
@@ -414,17 +436,20 @@ const CreateIndividualMatch = () => {
                     </Select>
                   </div>
 
-                  <div className="space-y-1.5">
-                    <Label className="text-[10px] font-black uppercase text-slate-400">City / Town</Label>
-                    <Input value={config.city} onChange={e => setConfig(c => ({ ...c, city: e.target.value }))}
-                      className="h-12 bg-slate-50 border-slate-100 rounded-xl font-bold" placeholder="e.g. Mumbai" />
-                  </div>
+                  <EntitySearch
+                    type="city" label="City / Town"
+                    value={config.city}
+                    onChange={v => setConfig(c => ({ ...c, city: v }))}
+                    placeholder="e.g. Mumbai"
+                  />
 
-                  <div className="space-y-1.5">
-                    <Label className="text-[10px] font-black uppercase text-slate-400">Venue / Ground</Label>
-                    <Input value={config.venue} onChange={e => setConfig(c => ({ ...c, venue: e.target.value }))}
-                      className="h-12 bg-slate-50 border-slate-100 rounded-xl font-bold" placeholder="e.g. Nehru Stadium" />
-                  </div>
+                  <EntitySearch
+                    type="venue" label="Venue / Ground"
+                    value={config.venue}
+                    onChange={v => setConfig(c => ({ ...c, venue: v }))}
+                    placeholder="e.g. Nehru Stadium"
+                    context={{ city: config.city }}
+                  />
 
                   <div className="space-y-1.5">
                     <Label className="text-[10px] font-black uppercase text-slate-400">Court No.</Label>
@@ -561,14 +586,19 @@ const CreateIndividualMatch = () => {
                 )}
               </div>
 
-              {/* Start Match button */}
-              {tossResult && tossChoice && commentary.length === 0 && (
-                <Button onClick={handleStartMatch} disabled={isCreating}
+              {/* Start Match button — show when toss is complete, hide once commentary starts */}
+              {tossResult && tossChoice && !isCreating && (
+                <Button onClick={handleStartMatch}
                   className="w-full h-20 bg-[#0B1F3A] text-white font-black text-2xl rounded-[2rem] shadow-xl hover:bg-sky-500 transition-all">
-                  {isCreating ? <Loader2 className="animate-spin h-8 w-8" /> : 'START MATCH 🏸'}
+                  START MATCH 🏸
                 </Button>
               )}
-
+              {isCreating && (
+                <div className="w-full h-20 rounded-[2rem] bg-sky-500 flex items-center justify-center gap-3">
+                  <Loader2 className="animate-spin h-6 w-6 text-white" />
+                  <span className="font-black text-white uppercase tracking-widest text-sm">Starting match...</span>
+                </div>
+              )}
               {!tossResult && (
                 <Button onClick={() => setPhase(1)} variant="outline"
                   className="w-full h-14 rounded-[2rem] font-black text-[10px] uppercase border-slate-200 gap-2">
