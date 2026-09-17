@@ -7,7 +7,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { showSuccess, showError } from '@/utils/toast';
 import { MatchAPI } from '@/services/api';
-import { io as socketIO, Socket } from 'socket.io-client';
 
 const API_URL   = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 const SOCKET_URL = API_URL.replace('/api', '');
@@ -72,7 +71,7 @@ const ScoringPage = () => {
   const [loading,       setLoading]       = useState(true);
   const [scoring,       setScoring]       = useState(false);
   const [activeOverlay, setActiveOverlay] = useState<1 | 2 | null>(null);
-  const socketRef = useRef<Socket | null>(null);
+  const socketRef = useRef<any>(null);
 
   // ── Load match ───────────────────────────────────────────────────────────
   useEffect(() => {
@@ -97,16 +96,20 @@ const ScoringPage = () => {
     };
     load();
 
-    // Socket.IO
-    const socket = socketIO(SOCKET_URL, { transports: ['websocket'] });
-    socketRef.current = socket;
-    socket.emit('match:join', matchId);
-    socket.on('match:state',     (d: any) => setMatchData(d));
-    socket.on('match:completed', (d: any) => setMatchData(d));
-    socket.on('score:update',    (d: any) => {
-      setMatchData((prev: any) => prev ? { ...prev, ...d } : d);
-      if (d.matchCompleted)     showSuccess('Match Complete!');
-      else if (d.gameCompleted) showSuccess('Game Complete!');
+    // Socket.IO — dynamic import so it doesn't break when backend is offline
+    import('socket.io-client').then(({ io }) => {
+      const socket = io(SOCKET_URL, { transports: ['websocket'] });
+      socketRef.current = socket;
+      socket.emit('match:join', matchId);
+      socket.on('match:state',     (d: any) => setMatchData(d));
+      socket.on('match:completed', (d: any) => setMatchData(d));
+      socket.on('score:update',    (d: any) => {
+        setMatchData((prev: any) => prev ? { ...prev, ...d } : d);
+        if (d.matchCompleted)     showSuccess('Match Complete!');
+        else if (d.gameCompleted) showSuccess('Game Complete!');
+      });
+    }).catch(() => {
+      // No backend — offline mode only
     });
     return () => {
       socket.emit('match:leave', matchId);
