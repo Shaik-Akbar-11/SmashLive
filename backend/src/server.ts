@@ -1,6 +1,7 @@
 
 import 'dotenv/config';
 import express from 'express';
+import mongoose from 'mongoose';
 import { initWhatsApp } from './services/whatsapp.service';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
@@ -50,6 +51,12 @@ connectDB();
 
 // OTP sender
 initWhatsApp();
+
+// Health check
+app.get('/health', (_req, res) => {
+  res.json({ status: 'ok', db: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected' });
+});
+app.get('/', (_req, res) => res.json({ status: 'SmashLive API running' }));
 
 // API Routes
 app.use('/api/auth', authRoutes);

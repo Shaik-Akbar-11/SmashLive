@@ -4,12 +4,13 @@ import { config } from '../config';
 const connectDB = async () => {
   try {
     const conn = await mongoose.connect(config.mongoUri, {
-      autoIndex: true
+      autoIndex: true,
+      serverSelectionTimeoutMS: 10000,
     });
-    console.log(`MongoDB Connected: ${conn.connection.host}`);
+    console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
   } catch (error) {
-    console.error('MongoDB connection error:', error);
-    process.exit(1);
+    console.error('❌ MongoDB connection error:', error);
+    // Don't exit — let the server run, DB-dependent routes will fail gracefully
   }
 };
 
