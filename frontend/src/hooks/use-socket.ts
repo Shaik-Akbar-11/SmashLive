@@ -1,62 +1,57 @@
 import { useEffect, useRef } from 'react';
 
+// Socket.IO is only available when the backend (Render) is live.
+// When offline / frontend-only, all calls are silent no-ops.
+
 const SOCKET_URL = (import.meta.env.VITE_API_URL || 'http://localhost:5001/api').replace('/api', '');
 
 let globalSocket: any = null;
-let socketPromise: Promise<any> | null = null;
 
-function getSocketAsync(): Promise<any> {
-  if (globalSocket && !globalSocket.disconnected) return Promise.resolve(globalSocket);
-  if (socketPromise) return socketPromise;
-  socketPromise = import('socket.io-client').then(({ io }) => {
+function initSocket() {
+  if (globalSocket) return globalSocket;
+  // Dynamically require socket.io-client at runtime only
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { io } = require('socket.io-client');
     globalSocket = io(SOCKET_URL, {
       transports: ['websocket'],
-      reconnectionAttempts: 10,
-      reconnectionDelay: 1000,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 2000,
     });
-    return globalSocket;
-  }).catch(() => null);
-  return socketPromise;
-}
-
-// Sync getter — returns null if not yet loaded (used by LiveBroadcast)
-export function getSocket(): any {
+  } catch {
+    // Backend not available — silent no-op
+    globalSocket = {
+      on: () => {},
+      off: () => {},
+      emit: () => {},
+      connected: false,
+      disconnected: true,
+    };
+  }
   return globalSocket;
 }
 
-/**
- * Subscribes to a socket event and cleans up on unmount.
- * No-ops gracefully when backend is offline.
- */
+export function getSocket() {
+  return globalSocket || initSocket();
+}
+
 export function useSocketEvent(event: string, handler: (data: any) => void) {
   const handlerRef = useRef(handler);
   handlerRef.current = handler;
 
   useEffect(() => {
-    let socket: any = null;
     const fn = (data: any) => handlerRef.current(data);
-    getSocketAsync().then((s) => {
-      if (!s) return;
-      socket = s;
-      socket.on(event, fn);
-    });
-    return () => {
-      if (socket) socket.off(event, fn);
-    };
+    const socket = getSocket();
+    socket.on(event, fn);
+    return () => socket.off(event, fn);
   }, [event]);
 }
 
-/**
- * Join a match room and leave on unmount.
- */
 export function useMatchRoom(matchId: string | undefined) {
   useEffect(() => {
     if (!matchId) return;
-    getSocketAsync().then((s) => {
-      if (s) s.emit('match:join', matchId);
-    });
-    return () => {
-      if (globalSocket) globalSocket.emit('match:leave', matchId);
-    };
+    const socket = getSocket();
+    socket.emit('match:join', matchId);
+    return () => socket.emit('match:leave', matchId);
   }, [matchId]);
 }
