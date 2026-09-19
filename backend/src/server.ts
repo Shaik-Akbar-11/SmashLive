@@ -46,9 +46,13 @@ const app = express();
 const httpServer = createServer(app);
 
 const allowedOrigins = [
+  // Production Vercel frontend — always allowed
+  'https://smash-live.vercel.app',
+  // Local development
   'http://localhost:5173',
   'http://localhost:8080',
   'http://localhost:3000',
+  // Optional override via Render env var (additional origin, e.g. custom domain)
   process.env.FRONTEND_URL || '',
 ].filter(Boolean);
 
