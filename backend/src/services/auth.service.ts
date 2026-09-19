@@ -1,107 +1,108 @@
 import jwt from 'jsonwebtoken';
 import { User } from '../models/User';
 import { config } from '../config';
+import { normalizeEmail } from './otp.service';
 
 const generateToken = (id: string) => {
-  return jwt.sign({ id }, config.jwtSecret, { expiresIn: config.jwtExpire as `${number}${'s'|'m'|'h'|'d'|'w'|'y'}` | number });
+  return jwt.sign(
+    { id },
+    config.jwtSecret,
+    { expiresIn: config.jwtExpire as `${number}${'s'|'m'|'h'|'d'|'w'|'y'}` | number }
+  );
 };
-
-const normalizeMobile = (mobile: string) => String(mobile).replace(/\D/g, '');
 
 export const AuthService = {
   /**
-   * Check if a mobile number is already registered.
+   * Send-OTP pre-check: nothing here — response shape is identical for
+   * known/unknown emails (account enumeration prevention).
    */
-  async checkUserExists(mobile: string): Promise<boolean> {
-    const user = await User.findOne({ mobile: normalizeMobile(mobile) });
-    return !!user;
-  },
 
   /**
-   * Register a new athlete by mobile number.
+   * Called after OTP verification succeeds.
+   * - Unknown email → create new user with role=player
+   * - Known email   → update emailVerified if needed, preserve role
+   * Never downgrades an existing admin.
    */
-  async register({
+  async loginOrRegister({
+    email,
     name,
-    mobile,
     gender,
     state,
     district,
-    role,
   }: {
-    name: string;
-    mobile: string;
+    email: string;
+    name?: string;
     gender?: string;
     state?: string;
     district?: string;
-    role?: 'admin' | 'referee' | 'player' | 'viewer';
   }) {
-    const cleanMobile = normalizeMobile(mobile);
+    const cleanEmail = normalizeEmail(email);
+    let user = await User.findOne({ email: cleanEmail });
 
-    const existing = await User.findOne({ mobile: cleanMobile });
-    if (existing) {
-      throw new Error('Mobile number already registered');
+    if (!user) {
+      // New user — registration path
+      if (!name) {
+        throw new Error('Name is required for registration.');
+      }
+      const smashId = 'SMASH#' + Math.floor(1000 + Math.random() * 9000);
+      user = new User({
+        email:              cleanEmail,
+        emailVerified:      true,
+        name,
+        gender,
+        state,
+        district,
+        role:               'player',   // public registration always player
+        smashId,
+        onboardingComplete: true,
+      });
+      await user.save();
+    } else {
+      // Existing user — login path; mark email verified if not already
+      if (!user.emailVerified) {
+        user.emailVerified = true;
+        await user.save();
+      }
+      // Never downgrade admin — role is preserved as-is
     }
 
-    const smashId = 'SMASH#' + Math.floor(1000 + Math.random() * 9000);
-
-    const user = new User({
-      name,
-      mobile: cleanMobile,
-      gender,
-      state,
-      district,
-      role: role || 'player',
-      smashId,
-      onboardingComplete: true,
-    });
-
-    await user.save();
-
-    return {
-      _id: user._id,
-      name: user.name,
-      mobile: user.mobile,
-      gender: user.gender,
-      state: user.state,
-      district: user.district,
-      role: user.role,
-      smashId: user.smashId,
-      onboardingComplete: user.onboardingComplete,
-      token: generateToken(user._id.toString()),
-    };
+    return buildProfile(user);
   },
 
   /**
-   * Login by mobile number. OTP verification is handled on the frontend;
-   * this just retrieves/returns the user profile + a fresh token.
+   * @deprecated — kept so any legacy callers don't hard-crash during cutover.
+   * Use loginOrRegister() for all new flows.
    */
-  async login({ mobile }: { mobile: string }) {
-    const cleanMobile = normalizeMobile(mobile);
-    const user = await User.findOne({ mobile: cleanMobile });
+  async register({
+    name, email, gender, state, district,
+  }: {
+    name: string; email: string; gender?: string; state?: string; district?: string;
+  }) {
+    return this.loginOrRegister({ email, name, gender, state, district });
+  },
 
-    if (!user) {
-      throw new Error('Mobile number not registered');
-    }
-
-    return {
-      _id: user._id,
-      name: user.name,
-      mobile: user.mobile,
-      gender: user.gender,
-      state: user.state,
-      district: user.district,
-      role: user.role,
-      smashId: user.smashId,
-      onboardingComplete: user.onboardingComplete,
-      token: generateToken(user._id.toString()),
-    };
+  async login({ email }: { email: string }) {
+    return this.loginOrRegister({ email });
   },
 
   async getProfile(userId: string) {
     const user = await User.findById(userId).select('-__v').lean();
-    if (!user) {
-      throw new Error('User not found');
-    }
+    if (!user) throw new Error('User not found');
     return user;
   },
 };
+
+function buildProfile(user: InstanceType<typeof User>) {
+  return {
+    _id:                user._id,
+    name:               user.name,
+    email:              user.email,
+    gender:             user.gender,
+    state:              user.state,
+    district:           user.district,
+    role:               user.role,
+    smashId:            user.smashId,
+    onboardingComplete: user.onboardingComplete,
+    token:              generateToken(user._id.toString()),
+  };
+}

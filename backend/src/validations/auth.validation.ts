@@ -1,26 +1,32 @@
 import { z } from 'zod';
 
+const emailField = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .email('Invalid email address.');
+
 export const sendOtpSchema = z.object({
   body: z.object({
-    mobile: z.string().min(10).max(15),
+    email: emailField,
   }),
 });
 
 export const registerSchema = z.object({
   body: z.object({
-    name: z.string().min(2),
-    mobile: z.string().min(10).max(15),
-    otp: z.string().length(6),
-    gender: z.string().optional(),
-    state: z.string().optional(),
+    name:     z.string().min(2),
+    email:    emailField,
+    otp:      z.string().length(6),
+    gender:   z.string().optional(),
+    state:    z.string().optional(),
     district: z.string().optional(),
-    role: z.enum(['admin', 'referee', 'player', 'viewer']).optional(),
+    // role is intentionally excluded — public registration always creates player
   }),
 });
 
 export const loginSchema = z.object({
   body: z.object({
-    mobile: z.string().min(10).max(15),
-    otp: z.string().length(6),
+    email: emailField,
+    otp:   z.string().length(6),
   }),
 });

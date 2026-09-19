@@ -11,19 +11,19 @@ import { cn } from '@/lib/utils';
 import { AuthService } from '@/services/auth.service';
 import { INDIAN_STATES, STATE_DISTRICTS } from '@/data/locations';
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 const Login = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'login' | 'register'>('login');
   const [step, setStep] = useState<'details' | 'otp'>('details');
   const [isLoading, setIsLoading] = useState(false);
-  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
   const [regData, setRegData] = useState({ name: '', gender: '', state: '', district: '' });
 
-
-
-  // ── Step 1: Send OTP via backend (Fast2SMS) ──────────────────────────────
+  // ── Step 1: Send OTP via backend (Resend) ────────────────────────────────
   const handleSendOtp = async () => {
     if (activeTab === 'register') {
       if (!regData.name || !regData.gender || !regData.state || !regData.district) {
@@ -31,18 +31,18 @@ const Login = () => {
         return;
       }
     }
-    if (phone.length < 10) {
-      showError('Enter a valid 10-digit mobile number.');
+    if (!EMAIL_RE.test(email.trim())) {
+      showError('Invalid email address.');
       return;
     }
 
     setIsLoading(true);
     try {
-      await AuthService.sendOtp(phone);
+      await AuthService.sendOtp(email.trim());
       setStep('otp');
-      showSuccess('OTP sent to +91 ' + phone);
+      showSuccess('OTP sent to ' + email.trim().toLowerCase());
     } catch (err: any) {
-      showError(err.message || 'Failed to send OTP. Please try again.');
+      showError(err.message || 'Unable to send OTP. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -61,20 +61,20 @@ const Login = () => {
       if (activeTab === 'register') {
         const profile = await AuthService.registerAthlete({
           ...regData,
-          mobile: phone,
-          otp: code,
+          email: email.trim(),
+          otp:   code,
         });
         AuthService.setLocalSession(profile);
         showSuccess('Welcome to SmashLive!');
         navigate('/dashboard', { replace: true });
       } else {
-        const profile = await AuthService.loginWithOtp(phone, code);
+        const profile = await AuthService.loginWithOtp(email.trim(), code);
         AuthService.setLocalSession(profile);
         showSuccess(`Welcome back, ${profile.name}!`);
         navigate(profile.onboardingComplete ? '/dashboard' : '/onboarding', { replace: true });
       }
     } catch (err: any) {
-      showError(err.message || 'Verification failed. Please try again.');
+      showError(err.message || 'Invalid or expired OTP.');
     } finally {
       setIsLoading(false);
     }
@@ -98,10 +98,10 @@ const Login = () => {
     setOtp(['', '', '', '', '', '']);
     setIsLoading(true);
     try {
-      await AuthService.sendOtp(phone);
-      showSuccess('OTP resent to +91 ' + phone);
+      await AuthService.sendOtp(email.trim());
+      showSuccess('OTP resent to ' + email.trim().toLowerCase());
     } catch (err: any) {
-      showError(err.message || 'Failed to resend OTP.');
+      showError(err.message || 'Unable to send OTP. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -201,18 +201,15 @@ const Login = () => {
                 )}
 
                 <div className="space-y-1.5 pb-2">
-                  <Label className="text-[10px] font-black uppercase text-slate-400 ml-1">Mobile Number</Label>
-                  <div className="flex gap-2">
-                    <div className="h-12 px-3 border border-slate-100 rounded-xl bg-slate-50 flex items-center font-black text-xs">+91</div>
-                    <Input
-                      maxLength={10}
-                      value={phone}
-                      onChange={e => setPhone(e.target.value.replace(/\D/g, ''))}
-                      placeholder="Enter 10 digits"
-                      inputMode="numeric"
-                      className="h-12 rounded-xl bg-slate-50 flex-1 font-black text-lg border-slate-100 tracking-wider"
-                    />
-                  </div>
+                  <Label className="text-[10px] font-black uppercase text-slate-400 ml-1">Email Address</Label>
+                  <Input
+                    type="email"
+                    value={email}
+                    onChange={e => setEmail(e.target.value)}
+                    placeholder="example@gmail.com"
+                    autoComplete="email"
+                    className="h-12 rounded-xl bg-slate-50 flex-1 font-bold text-sm border-slate-100"
+                  />
                 </div>
 
                 <Button
@@ -229,12 +226,9 @@ const Login = () => {
             {step === 'otp' && (
               <motion.div key="otp" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6 text-center">
                 <div className="space-y-2">
-                  <h3 className="text-lg font-black text-[#0B1F3A]">Verify Your Number</h3>
+                  <h3 className="text-lg font-black text-[#0B1F3A]">Check Your Email</h3>
                   <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
-                    OTP sent to +91 {phone}
-                  </p>
-                  <p className="text-[10px] text-sky-500 font-bold bg-sky-50 rounded-lg py-1.5 px-3">
-                    Demo mode — use OTP: <span className="font-black tracking-widest">123456</span>
+                    OTP sent to {email.trim().toLowerCase()}
                   </p>
                 </div>
 
@@ -264,10 +258,10 @@ const Login = () => {
 
                 <div className="flex items-center justify-between pt-1">
                   <button
-                    onClick={handleResend}
+                    onClick={() => { setStep('details'); setOtp(['', '', '', '', '', '']); }}
                     className="text-[10px] font-black text-slate-400 uppercase tracking-widest underline underline-offset-4 hover:text-sky-500 transition-colors"
                   >
-                    Change Number
+                    Change Email
                   </button>
                   <button
                     onClick={handleResend}

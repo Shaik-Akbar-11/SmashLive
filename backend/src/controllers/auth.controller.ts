@@ -1,19 +1,25 @@
 import { Request, Response } from 'express';
 import { AuthService } from '../services/auth.service';
-import { sendOtp, verifyOtp } from '../services/whatsapp.service';
+import { sendOtp, verifyOtp } from '../services/otp.service';
 
 export const authController = {
   /**
    * POST /api/auth/send-otp
-   * Sends an OTP to the given mobile number via WhatsApp.
+   * Sends an OTP to the given email address.
+   * Returns identical status/body for known and unknown emails (enumeration prevention).
    */
   async sendOtp(req: Request, res: Response) {
     try {
-      const { mobile } = req.body;
-      await sendOtp(mobile);
-      res.json({ message: 'OTP sent via WhatsApp' });
+      const { email } = req.body;
+      await sendOtp(email);
+      // Identical response regardless of whether email exists
+      res.json({ message: 'If that email is valid, an OTP has been sent.' });
     } catch (error: any) {
-      res.status(400).json({ message: error.message });
+      // Canonical user-facing messages only
+      const msg = error.message === 'Please wait before requesting another OTP.'
+        ? error.message
+        : 'Unable to send OTP. Please try again.';
+      res.status(400).json({ message: msg });
     }
   },
 
@@ -23,9 +29,9 @@ export const authController = {
    */
   async register(req: Request, res: Response) {
     try {
-      const { name, mobile, otp, gender, state, district, role } = req.body;
-      await verifyOtp(mobile, otp);
-      const user = await AuthService.register({ name, mobile, gender, state, district, role });
+      const { name, email, otp, gender, state, district } = req.body;
+      await verifyOtp(email, otp);
+      const user = await AuthService.loginOrRegister({ email, name, gender, state, district });
       res.status(201).json(user);
     } catch (error: any) {
       res.status(400).json({ message: error.message });
@@ -38,9 +44,9 @@ export const authController = {
    */
   async login(req: Request, res: Response) {
     try {
-      const { mobile, otp } = req.body;
-      await verifyOtp(mobile, otp);
-      const user = await AuthService.login({ mobile });
+      const { email, otp } = req.body;
+      await verifyOtp(email, otp);
+      const user = await AuthService.loginOrRegister({ email });
       res.json(user);
     } catch (error: any) {
       res.status(401).json({ message: error.message });
@@ -57,14 +63,5 @@ export const authController = {
     } catch (error: any) {
       res.status(400).json({ message: error.message });
     }
-  },
-
-  /**
-   * GET /api/auth/whatsapp-status
-   * Returns whether the WhatsApp sender is connected.
-   */
-  async whatsappStatus(_req: Request, res: Response) {
-    const { getWhatsAppStatus } = await import('../services/whatsapp.service');
-    res.json(getWhatsAppStatus());
   },
 };

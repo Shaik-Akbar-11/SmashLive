@@ -19,5 +19,7 @@ services:
         value: 24h
       - key: FRONTEND_URL
         sync: false
-      - key: FAST2SMS_API_KEY
+      - key: RESEND_API_KEY
+        sync: false
+      - key: EMAIL_FROM
         sync: false
