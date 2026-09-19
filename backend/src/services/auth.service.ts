@@ -54,7 +54,7 @@ export const AuthService = {
         district,
         role:               'player',   // public registration always player
         smashId,
-        onboardingComplete: true,
+        onboardingComplete: false,      // onboarding runs after registration
       });
       await user.save();
     } else {

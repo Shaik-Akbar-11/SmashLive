@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Link, useNavigate } from 'react-router-dom';
 import { MatchAPI, TournamentAPI, AnalyticsAPI, UserAPI } from '@/services/api';
+import { AuthService } from '@/services/auth.service';
 import { cn } from '@/lib/utils';
 import { useSocketEvent } from '@/hooks/use-socket';
 import { MatchCardSkeleton } from '@/components/ui/skeleton-cards';
@@ -25,9 +26,24 @@ const Court = () => {
 
   const fetchData = useCallback(async () => {
     setLoading(true);
+
+    // 1. Seed UI immediately from localStorage
     const saved = localStorage.getItem('userProfile');
-    const prof  = saved ? JSON.parse(saved) : null;
+    let prof = saved ? JSON.parse(saved) : null;
     if (prof) setProfile(prof);
+
+    // 2. Fetch fresh profile from backend and sync localStorage
+    try {
+      const fresh = await AuthService.getProfile();
+      if (fresh) {
+        // Preserve the token that is already in localStorage
+        const token = AuthService.getToken();
+        const merged = { ...fresh, token: token || (prof?.token ?? '') };
+        AuthService.setLocalSession(merged as any);
+        setProfile(merged);
+        prof = merged;
+      }
+    } catch { /* backend unreachable — use localStorage copy */ }
 
     try {
       const [activeMatches, activeTourneys, analytics] = await Promise.all([

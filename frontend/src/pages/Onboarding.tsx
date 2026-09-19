@@ -57,22 +57,18 @@ const Onboarding = () => {
     };
 
     try {
-      // Try backend update if token exists
       const updated = await AuthService.updateProfile(update);
-      if (updated) {
-        AuthService.setLocalSession({ ...profile, ...updated, onboardingComplete: true });
-      } else {
-        // Demo mode — just update localStorage
-        AuthService.setLocalSession({ ...profile, ...update, onboardingComplete: true });
-      }
-    } catch {
-      // Demo/offline — save locally
-      AuthService.setLocalSession({ ...profile, ...update, onboardingComplete: true });
+      if (!updated) throw new Error('Profile update returned empty.');
+      // Preserve the existing token — PATCH /auth/profile does not return a new one
+      const current = JSON.parse(localStorage.getItem('userProfile') || '{}');
+      AuthService.setLocalSession({ ...current, ...updated, onboardingComplete: true });
+      showSuccess('Profile complete! Welcome to SmashLive.');
+      navigate('/dashboard', { replace: true });
+    } catch (e: any) {
+      showError(e?.message || 'Could not save profile. Please try again.');
+    } finally {
+      setLoading(false);
     }
-
-    showSuccess('Profile complete! Welcome to SmashLive.');
-    navigate('/dashboard', { replace: true });
-    setLoading(false);
   };
 
   const skip = () => {
