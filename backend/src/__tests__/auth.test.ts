@@ -533,10 +533,11 @@ describe('validateConfig', () => {
     Object.assign(process.env, originalEnv);
   });
 
-  it('exits in production if EMAIL_API_KEY is missing', () => {
-    process.env.NODE_ENV      = 'production';
-    process.env.RESEND_API_KEY = '';
-    process.env.EMAIL_FROM     = 'no-reply@example.com';
+  it('exits in production if SMTP credentials are missing', () => {
+    process.env.NODE_ENV   = 'production';
+    process.env.SMTP_USER  = '';
+    process.env.SMTP_PASS  = '';
+    process.env.EMAIL_FROM = 'no-reply@example.com';
 
     const exitSpy = jest.spyOn(process, 'exit').mockImplementation((() => {
       throw new Error('process.exit called');
@@ -546,20 +547,22 @@ describe('validateConfig', () => {
     exitSpy.mockRestore();
   });
 
-  it('does not exit in development if EMAIL_API_KEY is missing', () => {
-    process.env.NODE_ENV      = 'development';
-    process.env.RESEND_API_KEY = '';
-    process.env.EMAIL_FROM     = '';
+  it('does not exit in development if SMTP credentials are missing', () => {
+    process.env.NODE_ENV   = 'development';
+    process.env.SMTP_USER  = '';
+    process.env.SMTP_PASS  = '';
+    process.env.EMAIL_FROM = '';
 
     const exitSpy = jest.spyOn(process, 'exit').mockImplementation((() => {}) as any);
     expect(() => validateConfig()).not.toThrow();
     exitSpy.mockRestore();
   });
 
-  it('does not exit in production when all email config is present', () => {
-    process.env.NODE_ENV       = 'production';
-    process.env.RESEND_API_KEY = 're_test_key';
-    process.env.EMAIL_FROM     = 'no-reply@example.com';
+  it('does not exit in production when all SMTP config is present', () => {
+    process.env.NODE_ENV   = 'production';
+    process.env.SMTP_USER  = 'sender@gmail.com';
+    process.env.SMTP_PASS  = 'app-password';
+    process.env.EMAIL_FROM = 'sender@gmail.com';
 
     const exitSpy = jest.spyOn(process, 'exit').mockImplementation((() => {}) as any);
     expect(() => validateConfig()).not.toThrow();
