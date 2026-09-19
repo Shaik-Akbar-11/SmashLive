@@ -17,7 +17,7 @@ import { notFound, errorHandler } from './middlewares/error.middleware';
 import { initMatchSockets } from './sockets/match.socket';
 import { config, validateConfig } from './config';
 import { setEmailProvider } from './services/otp.service';
-import { GmailSmtpProvider } from './services/email.provider';
+import { ResendEmailProvider } from './services/email.provider';
 import type { EmailProvider } from './services/email.provider';
 
 // ── Startup validation ───────────────────────────────────────────────────────
@@ -26,16 +26,9 @@ validateConfig();
 // ── Wire email provider ──────────────────────────────────────────────────────
 let provider: EmailProvider;
 
-if (config.smtpUser && config.smtpPass && config.emailFrom) {
-  provider = new GmailSmtpProvider(
-    config.smtpHost,
-    config.smtpPort,
-    config.smtpUser,
-    config.smtpPass,
-    config.emailFrom,
-    10,
-  );
-  console.log('[Email] Gmail SMTP provider ready.');
+if (config.resendApiKey && config.emailFrom) {
+  provider = new ResendEmailProvider(config.resendApiKey, config.emailFrom, 10);
+  console.log('[Email] Resend email provider ready.');
 } else {
   // Development console fallback — refused in production by validateConfig()
   provider = {
@@ -43,7 +36,7 @@ if (config.smtpUser && config.smtpPass && config.emailFrom) {
       console.log(`[DEV] OTP for ${email}: ${otp}`);
     },
   };
-  console.warn('[Email] No SMTP credentials — using console OTP logging (dev only).');
+  console.warn('[Email] No API key — using console OTP logging (dev only).');
 }
 
 setEmailProvider(provider);
