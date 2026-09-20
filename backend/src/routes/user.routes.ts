@@ -34,6 +34,28 @@ router.post('/rankings/recalculate', async (req: Request, res: Response) => {
   }
 });
 
+// POST /api/users/migrate-smash-ids — one-time migration to SMA format
+router.post('/migrate-smash-ids', async (req: Request, res: Response) => {
+  try {
+    const users = await User.find({}).lean();
+    const year = new Date().getFullYear().toString().slice(-2);
+    let updated = 0;
+    for (let i = 0; i < users.length; i++) {
+      const u = users[i];
+      const id = (u as any).smashId || '';
+      if (!id || !id.startsWith('SMA')) {
+        const seq = String(i + 1).padStart(4, '0');
+        const newId = `SMA${year}${seq}`;
+        await User.findByIdAndUpdate(u._id, { smashId: newId });
+        updated++;
+      }
+    }
+    res.json({ message: `Migration complete. Updated ${updated} users.`, updated });
+  } catch (err: any) {
+    res.status(400).json({ message: err.message });
+  }
+});
+
 // GET /api/users/h2h?a=id1&b=id2 — head to head between two players
 router.get('/h2h', async (req: Request, res: Response) => {
   try {
