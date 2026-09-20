@@ -35,12 +35,12 @@ const DashboardPreview = () => {
           </div>
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-[#0B1F3A]">V. Axelsen</span>
+              <span className="text-xs font-bold text-[#0B1F3A]">Side A</span>
               <span className="text-sm font-black text-sky-500">21</span>
             </div>
             <div className="h-px bg-slate-200/50" />
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-[#0B1F3A]">L. Zii Jia</span>
+              <span className="text-xs font-bold text-[#0B1F3A]">Side B</span>
               <span className="text-sm font-black text-slate-400">19</span>
             </div>
           </div>

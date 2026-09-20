@@ -29,7 +29,7 @@ const ProfileHero = ({ profile, isOwnProfile }: ProfileHeroProps) => {
   };
 
   const name = profile?.name || "Athlete";
-  const smashId = profile?.smash_id || profile?.smashId || "SMASH#0000";
+  const smashId = profile?.smash_id || profile?.smashId || '';
   const country = profile?.country || "India";
   const state = profile?.state || "Regional";
 

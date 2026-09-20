@@ -161,7 +161,7 @@ const Login = () => {
                       <Input
                         value={regData.name}
                         onChange={e => setRegData({ ...regData, name: e.target.value })}
-                        placeholder="e.g. Viktor Axelsen"
+                        placeholder="Enter your full name"
                         className="h-12 rounded-xl bg-slate-50 border-slate-100 font-bold text-sm"
                       />
                     </div>
