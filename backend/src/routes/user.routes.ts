@@ -34,26 +34,6 @@ router.post('/rankings/recalculate', async (req: Request, res: Response) => {
   }
 });
 
-// POST /api/users/clear-all — wipe all collections (dev/reset only)
-router.post('/clear-all', async (req: Request, res: Response) => {
-  try {
-    const { Match } = await import('../models/Match');
-    const { Tournament } = await import('../models/Tournament');
-    const { Participant } = await import('../models/Participant');
-    const { Otp } = await import('../models/Otp');
-    await Promise.all([
-      User.deleteMany({}),
-      Match.deleteMany({}),
-      Tournament.deleteMany({}),
-      Participant.deleteMany({}),
-      Otp.deleteMany({}),
-    ]);
-    res.json({ message: 'All collections cleared successfully' });
-  } catch (err: any) {
-    res.status(400).json({ message: err.message });
-  }
-});
-
 // POST /api/users/migrate-smash-ids — one-time migration to SMA format
 router.post('/migrate-smash-ids', async (req: Request, res: Response) => {
   try {
