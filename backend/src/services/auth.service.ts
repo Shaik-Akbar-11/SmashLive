@@ -44,7 +44,12 @@ export const AuthService = {
       if (!name) {
         throw new Error('Name is required for registration.');
       }
-      const smashId = 'SMASH#' + Math.floor(1000 + Math.random() * 9000);
+      // Generate SmashID: SMA + last 2 digits of year + 4-digit sequential number
+      const year = new Date().getFullYear().toString().slice(-2);
+      const count = await User.countDocuments();
+      const seq = String(count + 1).padStart(4, '0');
+      const smashId = `SMA${year}${seq}`;
+
       user = new User({
         email:              cleanEmail,
         emailVerified:      true,
@@ -52,9 +57,9 @@ export const AuthService = {
         gender,
         state,
         district,
-        role:               'player',   // public registration always player
+        role:               'player',
         smashId,
-        onboardingComplete: false,      // onboarding runs after registration
+        onboardingComplete: false,
       });
       await user.save();
     } else {
