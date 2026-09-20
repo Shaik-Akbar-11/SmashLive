@@ -25,6 +25,7 @@ export interface IUser extends Document {
   age?: number;
   club?: string;
   university?: string;
+  avatar?: string;
 }
 
 const userSchema = new mongoose.Schema<IUser>({
@@ -49,6 +50,7 @@ const userSchema = new mongoose.Schema<IUser>({
   age:                { type: Number },
   club:               { type: String },
   university:         { type: String },
+  avatar:             { type: String, default: '' },
   rankingPoints:      { type: Number, default: 0, index: true },
   matchesPlayed:      { type: Number, default: 0 },
   matchesWon:         { type: Number, default: 0 },

@@ -1,15 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Navbar from '@/components/layout/Navbar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ChevronLeft, Save, Zap, Loader2 } from 'lucide-react';
+import { ChevronLeft, Save, Zap, Loader2, Camera } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { showSuccess, showError } from '@/utils/toast';
 import { AuthService } from '@/services/auth.service';
 import { INDIAN_STATES, STATE_DISTRICTS } from '@/data/locations';
-import { cn } from '@/lib/utils';
 import EntitySearch from '@/components/ui/EntitySearch';
 
 const LEVELS = ['beginner', 'intermediate', 'advanced', 'professional'];
@@ -18,6 +17,8 @@ const CATEGORIES = ["Men's Singles", "Women's Singles", "Men's Doubles", "Women'
 const EditProfile = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [avatar, setAvatar] = useState('');
+  const fileRef = useRef<HTMLInputElement>(null);
   const [form, setForm] = useState({
     name:              '',
     gender:            '',
@@ -32,6 +33,7 @@ const EditProfile = () => {
 
   useEffect(() => {
     const saved = JSON.parse(localStorage.getItem('userProfile') || '{}');
+    setAvatar(saved.avatar || '');
     setForm({
       name:              saved.name              || '',
       gender:            saved.gender            || '',
@@ -60,6 +62,7 @@ const EditProfile = () => {
       preferredCategory: form.preferredCategory,
       club:              form.club,
       university:        form.university,
+      avatar:            avatar,
     };
 
     try {
@@ -95,14 +98,40 @@ const EditProfile = () => {
 
         <div className="bg-white rounded-[2rem] p-6 border border-slate-100 shadow-xl space-y-5">
 
-          {/* Avatar preview */}
+          {/* Avatar upload */}
           <div className="flex items-center gap-4 pb-4 border-b border-slate-50">
-            <div className="h-16 w-16 rounded-full bg-[#0B1F3A] flex items-center justify-center text-sky-400 font-black text-2xl uppercase shrink-0">
-              {form.name?.[0] || '?'}
+            <div className="relative shrink-0">
+              <div className="h-16 w-16 rounded-full bg-[#0B1F3A] flex items-center justify-center text-sky-400 font-black text-2xl uppercase overflow-hidden">
+                {avatar
+                  ? <img src={avatar} alt="avatar" className="w-full h-full object-cover" />
+                  : (form.name?.[0] || '?')
+                }
+              </div>
+              <button
+                type="button"
+                onClick={() => fileRef.current?.click()}
+                className="absolute -bottom-1 -right-1 h-6 w-6 bg-sky-500 rounded-full flex items-center justify-center shadow-lg"
+              >
+                <Camera className="h-3 w-3 text-white" />
+              </button>
+              <input
+                ref={fileRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={e => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  if (file.size > 2 * 1024 * 1024) { showError('Image must be under 2MB'); return; }
+                  const reader = new FileReader();
+                  reader.onloadend = () => setAvatar(reader.result as string);
+                  reader.readAsDataURL(file);
+                }}
+              />
             </div>
             <div>
               <p className="font-black text-[#0B1F3A] uppercase italic">{form.name || 'Your Name'}</p>
-              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">SmashLive Athlete</p>
+              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Tap camera to change photo</p>
             </div>
           </div>
 

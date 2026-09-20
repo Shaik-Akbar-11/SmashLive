@@ -38,8 +38,8 @@ const ProfileHero = ({ profile, isOwnProfile }: ProfileHeroProps) => {
       <div className="flex items-start gap-4">
         <div className="h-20 w-20 rounded-full p-1 bg-gradient-to-br from-[#0B1F3A] to-sky-500 shadow-lg shrink-0">
           <div className="h-full w-full rounded-full bg-slate-100 border-2 border-white overflow-hidden flex items-center justify-center">
-            {profile?.image ? (
-              <img src={profile.image} className="w-full h-full object-cover" alt="" />
+          {profile?.image || profile?.avatar ? (
+              <img src={profile.image || profile.avatar} className="w-full h-full object-cover" alt="" />
             ) : (
               <span className="text-[20px] font-black text-[#0B1F3A]">{name[0]?.toUpperCase()}</span>
             )}

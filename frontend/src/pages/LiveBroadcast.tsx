@@ -4,7 +4,7 @@ import PremiumScoreboard from '@/components/broadcast/PremiumScoreboard';
 import CommentaryFeed from '@/components/broadcast/CommentaryFeed';
 import MatchStatGrid from '@/components/broadcast/MatchStatGrid';
 import { Button } from '@/components/ui/button';
-import { Trophy, Activity, Zap, Bell, Check, Loader2, ChevronLeft } from 'lucide-react';
+import { Trophy, Activity, Zap, Bell, Check, Loader2, ChevronLeft, MessageCircle, Share2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useParams, useNavigate } from 'react-router-dom';
 import { MatchAPI } from '@/services/api';
@@ -172,8 +172,18 @@ const LiveBroadcast = () => {
             {isFollowing ? <Check className="h-4 w-4" /> : <Bell className="h-4 w-4" />}
             {isFollowing ? 'Following' : 'Notify'}
           </Button>
-          <Button className="flex-1 h-11 rounded-2xl bg-[#0B1F3A] text-white font-black text-[9px] uppercase tracking-widest">
-            Live Intel
+          <Button
+            onClick={() => {
+              const p1 = matchData?.players?.p1?.name || matchData?.players?.sideA?.[0]?.name || 'Side A';
+              const p2 = matchData?.players?.p2?.name || matchData?.players?.sideB?.[0]?.name || 'Side B';
+              const sc = score || [0, 0];
+              const url = `${window.location.origin}/broadcast/${id}`;
+              const text = `🏸 LIVE: ${matchData?.name || 'SmashLive Match'}\n${p1} ${sc[0]}-${sc[1]} ${p2}\nWatch live: ${url}`;
+              window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+            }}
+            className="flex-1 h-11 rounded-2xl bg-green-500 hover:bg-green-600 text-white font-black text-[9px] uppercase tracking-widest gap-2 border-none"
+          >
+            <MessageCircle className="h-4 w-4" /> Share
           </Button>
         </div>
       </div>

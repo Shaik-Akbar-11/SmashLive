@@ -4,12 +4,13 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { MatchAPI } from '@/services/api';
 import {
   ChevronLeft, Trophy, Zap, Target, AlertCircle,
-  Share2, Loader2, Radio
+  Share2, Loader2, Radio, MessageCircle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { showSuccess } from '@/utils/toast';
+import { shareScorecard, shareLiveMatch, copyToClipboard } from '@/utils/share';
 
 const actionIcon = (action: string) => {
   const a = (action || '').toLowerCase();
@@ -76,7 +77,16 @@ const MatchScorecard = () => {
 
   const shareScorecard = () => {
     const url = `${window.location.origin}/match/${id}`;
-    navigator.clipboard.writeText(url);
+    const p1 = match?.players?.p1?.name || match?.players?.sideA?.[0]?.name || 'Side A';
+    const p2 = match?.players?.p2?.name || match?.players?.sideB?.[0]?.name || 'Side B';
+    const setsWon = match?.sets_won || [0, 0];
+    const games = (match?.game_scores || []).map((g: any, i: number) => `Game ${i+1}: ${g.scoreA}-${g.scoreB}`).join(' | ');
+    const text = `🏸 Match Result: ${match?.name || 'SmashLive Match'}\n${p1} ${setsWon[0]}-${setsWon[1]} ${p2}\n${games}\nFull scorecard: ${url}`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+  };
+
+  const copyLink = async () => {
+    await navigator.clipboard.writeText(`${window.location.origin}/match/${id}`);
     showSuccess('Scorecard link copied!');
   };
 
@@ -91,10 +101,16 @@ const MatchScorecard = () => {
             className="h-9 px-3 font-black text-[9px] uppercase tracking-widest border bg-white rounded-xl">
             <ChevronLeft className="mr-1 h-3 w-3" /> Back
           </Button>
-          <Button onClick={shareScorecard} variant="outline"
-            className="h-9 px-3 font-black text-[9px] uppercase tracking-widest rounded-xl gap-2 border-slate-200">
-            <Share2 className="h-3.5 w-3.5" /> Share
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={copyLink} variant="outline"
+              className="h-9 px-3 font-black text-[9px] uppercase tracking-widest rounded-xl gap-1.5 border-slate-200">
+              <Share2 className="h-3.5 w-3.5" /> Copy
+            </Button>
+            <Button onClick={shareScorecard}
+              className="h-9 px-3 font-black text-[9px] uppercase tracking-widest rounded-xl gap-1.5 bg-green-500 hover:bg-green-600 text-white border-none">
+              <MessageCircle className="h-3.5 w-3.5" /> WhatsApp
+            </Button>
+          </div>
         </div>
 
         {/* Match header */}

@@ -18,7 +18,7 @@ router.patch('/profile', protect, async (req: any, res) => {
     const allowed = [
       'name', 'gender', 'state', 'district',
       'playingLevel', 'preferredCategory', 'age',
-      'onboardingComplete', 'club', 'university',
+      'onboardingComplete', 'club', 'university', 'avatar',
     ];
     const update: any = {};
     allowed.forEach(k => { if (req.body[k] !== undefined) update[k] = req.body[k]; });

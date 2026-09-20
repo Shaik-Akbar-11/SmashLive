@@ -1,27 +1,30 @@
 import express from 'express';
 import { matchController } from '../controllers/match.controller';
+import { protect } from '../middlewares/auth.middleware';
 
 const router = express.Router();
 
-// GET  /api/matches           — list all (optional ?status=live|scheduled|completed)
-router.get('/', matchController.getAll);
-
-// POST /api/matches           — create a match
-router.post('/', matchController.create);
-
-// GET  /api/matches/:id       — get single match
+// Public — read only
+router.get('/',    matchController.getAll);
 router.get('/:id', matchController.getById);
 
-// POST /api/matches/:id/start — transition scheduled → live
-router.post('/:id/start', matchController.start);
+// Protected — write operations require JWT
+router.post('/',          protect, matchController.create);
+router.post('/:id/start', protect, matchController.start);
+router.post('/:id/score', protect, matchController.scorePoint);
+router.post('/:id/undo',  protect, matchController.undoPoint);
+router.post('/:id/end',   protect, matchController.endMatch);
 
-// POST /api/matches/:id/score — award a point (backend validates badminton rules)
-router.post('/:id/score', matchController.scorePoint);
-
-// POST /api/matches/:id/undo  — undo the last point
-router.post('/:id/undo', matchController.undoPoint);
-
-// POST /api/matches/:id/end   — manually end a match
-router.post('/:id/end', matchController.endMatch);
+// Delete — protected
+router.delete('/:id', protect, async (req: any, res) => {
+  try {
+    const { Match } = await import('../models/Match');
+    const match = await Match.findByIdAndDelete(req.params.id);
+    if (!match) return res.status(404).json({ message: 'Match not found' });
+    res.json({ message: 'Match deleted' });
+  } catch (err: any) {
+    res.status(400).json({ message: err.message });
+  }
+});
 
 export default router;
