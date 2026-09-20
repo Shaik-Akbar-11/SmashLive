@@ -16,14 +16,16 @@ export const config = {
  */
 export const validateConfig = (): void => {
   const isProd = process.env.NODE_ENV === 'production';
-  const missing = !config.resendApiKey || !config.emailFrom;
+  const hasResend = !!(process.env.RESEND_API_KEY && process.env.EMAIL_FROM);
+  const hasSmtp   = !!(process.env.SMTP_USER && process.env.SMTP_PASS);
+  const missing   = !hasResend && !hasSmtp;
 
   if (missing && isProd) {
-    console.error('[Config] FATAL: RESEND_API_KEY and EMAIL_FROM are required in production.');
+    console.error('[Config] FATAL: Configure either (RESEND_API_KEY + EMAIL_FROM) or (SMTP_USER + SMTP_PASS) in production.');
     process.exit(1);
   }
 
   if (missing) {
-    console.warn('[Config] WARNING: RESEND_API_KEY / EMAIL_FROM not set — OTPs will be logged to console (dev only).');
+    console.warn('[Config] WARNING: No email config set — OTPs will be logged to console (dev only).');
   }
 };
