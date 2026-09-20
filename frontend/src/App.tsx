@@ -1,3 +1,4 @@
+import React, { useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -6,6 +7,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { safeJsonParse } from "@/lib/utils";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useNotifications } from "@/hooks/use-notifications";
+import { AuthService } from "@/services/auth.service";
 import Index from "./pages/Index";
 import LiveMatch from "./pages/LiveMatch";
 import Tournaments from "./pages/Tournaments";
@@ -46,6 +48,20 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
 const AppInner = () => {
   useNotifications();
+
+  // Validate session on app load — auto logout if account deleted from DB
+  useEffect(() => {
+    const validate = async () => {
+      if (!AuthService.isLoggedIn()) return;
+      const profile = await AuthService.getProfile();
+      if (!profile) {
+        AuthService.logout();
+        window.location.href = '/login';
+      }
+    };
+    validate();
+  }, []);
+
   return (
     <div className="min-h-screen flex flex-col">
       <Routes>
