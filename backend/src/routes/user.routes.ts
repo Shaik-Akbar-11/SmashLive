@@ -34,6 +34,17 @@ router.post('/rankings/recalculate', async (req: Request, res: Response) => {
   }
 });
 
+// POST /api/users/clear-otps — clear OTP rate limit (temp)
+router.post('/clear-otps', async (req: Request, res: Response) => {
+  try {
+    const { Otp } = await import('../models/Otp');
+    await Otp.deleteMany({});
+    res.json({ message: 'OTPs cleared' });
+  } catch (err: any) {
+    res.status(400).json({ message: err.message });
+  }
+});
+
 // POST /api/users/migrate-smash-ids — one-time migration to SMA format
 router.post('/migrate-smash-ids', async (req: Request, res: Response) => {
   try {
