@@ -151,11 +151,11 @@ const Smashed = () => {
                         <span className="font-black text-sm text-[#0B1F3A]">{item.current_score ? `${item.current_score[0]}-${item.current_score[1]}` : "Finalized"}</span>
                      </div>
                      <Button 
-                       onClick={() => navigate(item.type === 'tournament' ? `/tournament/${item.id}` : `/scoring/${item.id}`)} 
+                       onClick={() => navigate(item.type === 'tournament' ? `/tournament/${item.id}` : `/match/${item.id}`)} 
                        variant="ghost" 
                        className="text-sky-600 font-black text-[10px] uppercase p-0 h-auto gap-1.5 hover:bg-transparent"
                      >
-                       OPEN PROTOCOL <ChevronRight className="h-4 w-4" />
+                       VIEW SCORECARD <ChevronRight className="h-4 w-4" />
                      </Button>
                   </div>
                 </motion.div>
