@@ -141,7 +141,7 @@ router.get('/', async (req: Request, res: Response) => {
   }
 });
 
-// GET /api/users/:id
+// GET /api/users/:id — supports ObjectId, mobile, or smashId
 router.get('/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
@@ -150,7 +150,9 @@ router.get('/:id', async (req: Request, res: Response) => {
       user = await User.findById(id).select('-__v').lean();
     }
     if (!user) {
-      user = await User.findOne({ mobile: id }).select('-__v').lean();
+      user = await User.findOne({
+        $or: [{ mobile: id }, { smashId: id }]
+      }).select('-__v').lean();
     }
     if (!user) return res.status(404).json({ message: 'User not found' });
     res.json(user);

@@ -26,6 +26,7 @@ import ScoringPage from "./pages/ScoringPage";
 import Onboarding from "./pages/Onboarding";
 import RegisterParticipant from "./pages/RegisterParticipant";
 import MyCircuits from "./pages/MyCircuits";
+import Players from "./pages/Players";
 import NotFound from "./pages/NotFound";
 import BottomNav from "./components/layout/BottomNav";
 
@@ -68,8 +69,9 @@ const App = () => (
             <Route path="/tournaments/create" element={<ProtectedRoute><CreateTournament /></ProtectedRoute>} />
             <Route path="/tournament/:id" element={<TournamentDetail />} />
             <Route path="/player/me" element={<ProtectedRoute><PlayerProfile /></ProtectedRoute>} />
-            <Route path="/player/:id" element={<ProtectedRoute><PlayerProfile /></ProtectedRoute>} />
+            <Route path="/player/:id" element={<PlayerProfile />} />
             <Route path="/player/edit" element={<ProtectedRoute><EditProfile /></ProtectedRoute>} />
+            <Route path="/players" element={<Players />} />
             <Route path="/rankings" element={<Rankings />} />
             <Route path="/news" element={<News />} />
             <Route path="/broadcast/create" element={<ProtectedRoute><CreateBroadcast /></ProtectedRoute>} />
