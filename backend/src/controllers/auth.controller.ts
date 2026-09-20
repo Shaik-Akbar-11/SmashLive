@@ -46,7 +46,7 @@ export const authController = {
     try {
       const { email, otp } = req.body;
       await verifyOtp(email, otp);
-      const user = await AuthService.loginOrRegister({ email });
+      const user = await AuthService.login({ email });
       res.json(user);
     } catch (error: any) {
       res.status(401).json({ message: error.message });

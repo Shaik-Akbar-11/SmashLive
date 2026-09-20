@@ -87,7 +87,20 @@ export const AuthService = {
   },
 
   async login({ email }: { email: string }) {
-    return this.loginOrRegister({ email });
+    const cleanEmail = normalizeEmail(email);
+    const user = await User.findOne({ email: cleanEmail });
+
+    if (!user) {
+      throw new Error('No account found with this email. Please register first.');
+    }
+
+    // Mark email verified on login if not already
+    if (!user.emailVerified) {
+      user.emailVerified = true;
+      await user.save();
+    }
+
+    return buildProfile(user);
   },
 
   async getProfile(userId: string) {

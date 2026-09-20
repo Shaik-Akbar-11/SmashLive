@@ -74,7 +74,13 @@ const Login = () => {
         navigate(profile.onboardingComplete ? '/dashboard' : '/onboarding', { replace: true });
       }
     } catch (err: any) {
-      showError(err.message || 'Invalid or expired OTP.');
+      const msg = err.message || 'Invalid or expired OTP.';
+      // Make the error clear if user isn't registered
+      if (msg.includes('No account found')) {
+        showError('You are not registered. Please switch to the Register tab.');
+      } else {
+        showError(msg);
+      }
     } finally {
       setIsLoading(false);
     }
