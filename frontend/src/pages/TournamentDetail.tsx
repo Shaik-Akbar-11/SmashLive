@@ -113,6 +113,8 @@ const BracketView = ({
   );
 };
 
+import BracketTree from '@/components/tournament/BracketTree';
+
 // ── Standings view (Round Robin) ───────────────────────────────────────────
 const StandingsView = ({ standings }: { standings: any[] }) => (
   <div className="space-y-2">
@@ -364,16 +366,15 @@ const TournamentDetail = () => {
 
             {/* Bracket */}
             {activeTab === 'bracket' && hasBracket && (
-              <div className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm space-y-4">
+              <div className="bg-white rounded-[2.5rem] border border-slate-100 p-6 shadow-sm space-y-4">
                 <div className="flex items-center justify-between border-b border-slate-50 pb-4">
                   <h3 className="text-sm font-black uppercase italic">
                     {isKnockout ? 'Knockout Bracket' : 'Round Robin Fixtures'}
                   </h3>
                   <Trophy className="h-4 w-4 text-sky-500" />
                 </div>
-                <BracketView
+                <BracketTree
                   bracket={bracket}
-                  participants={participants}
                   onResult={handleResult}
                 />
               </div>

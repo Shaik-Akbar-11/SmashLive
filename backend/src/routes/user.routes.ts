@@ -7,12 +7,17 @@ import mongoose from 'mongoose';
 
 const router = express.Router();
 
-// GET /api/users/rankings?scope=world&state=Maharashtra
+// GET /api/users/rankings?scope=world|state|district&state=X&district=Y
 router.get('/rankings', async (req: Request, res: Response) => {
   try {
-    const scope = (req.query.scope as string) === 'state' ? 'state' : 'world';
-    const state = req.query.state as string | undefined;
-    const data  = await getRankings(scope, state);
+    const scope    = req.query.scope as string || 'world';
+    const state    = req.query.state    as string | undefined;
+    const district = req.query.district as string | undefined;
+    const data     = await getRankings(
+      scope === 'district' ? 'state' : scope as 'world' | 'state',
+      state,
+      district
+    );
     res.json(data);
   } catch (err: any) {
     res.status(400).json({ message: err.message });
@@ -24,6 +29,65 @@ router.post('/rankings/recalculate', async (req: Request, res: Response) => {
   try {
     await recalculateAllRankings();
     res.json({ message: 'Rankings recalculated' });
+  } catch (err: any) {
+    res.status(400).json({ message: err.message });
+  }
+});
+
+// GET /api/users/h2h?a=id1&b=id2 — head to head between two players
+router.get('/h2h', async (req: Request, res: Response) => {
+  try {
+    const { a, b } = req.query as { a: string; b: string };
+    if (!a || !b) return res.status(400).json({ message: 'Both player ids required' });
+
+    const findUser = async (id: string) => {
+      if (mongoose.isValidObjectId(id)) {
+        const u = await User.findById(id).lean();
+        if (u) return u;
+      }
+      return await User.findOne({ $or: [{ mobile: id }, { smashId: id }] }).lean();
+    };
+
+    const [userA, userB] = await Promise.all([findUser(a), findUser(b)]);
+    if (!userA || !userB) return res.status(404).json({ message: 'One or both players not found' });
+
+    const allMatches = await Match.find({ status: 'completed' }).lean();
+
+    const h2hMatches = allMatches.filter(m => {
+      const str = JSON.stringify(m.players || '').toLowerCase();
+      const nameA = userA.name.toLowerCase();
+      const nameB = userB.name.toLowerCase();
+      const mobileA = userA.mobile;
+      const mobileB = userB.mobile;
+      const hasA = str.includes(mobileA) || str.includes(nameA);
+      const hasB = str.includes(mobileB) || str.includes(nameB);
+      return hasA && hasB;
+    });
+
+    let winsA = 0, winsB = 0;
+    const matches = h2hMatches.map(m => {
+      const p = m.players as any;
+      const strA = JSON.stringify(p?.p1 || p?.sideA || '').toLowerCase();
+      const isAonSide1 = strA.includes(userA.mobile) || strA.includes(userA.name.toLowerCase());
+      const winner = m.winner === (isAonSide1 ? 1 : 2) ? 'A' : 'B';
+      if (winner === 'A') winsA++; else winsB++;
+      const games = (m as any).game_scores || [];
+      return {
+        _id: m._id,
+        name: m.name,
+        date: m.updatedAt,
+        winner,
+        score: games.map((g: any) => `${g.scoreA}-${g.scoreB}`).join(', ') || '—',
+      };
+    });
+
+    res.json({
+      playerA: { _id: userA._id, name: userA.name, smashId: userA.smashId, state: userA.state },
+      playerB: { _id: userB._id, name: userB.name, smashId: userB.smashId, state: userB.state },
+      winsA, winsB,
+      total: h2hMatches.length,
+      matches,
+    });
   } catch (err: any) {
     res.status(400).json({ message: err.message });
   }

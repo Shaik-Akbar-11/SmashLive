@@ -123,8 +123,10 @@ export const UserAPI = {
   getAll: () => request<any[]>('/users'),
   getById: (id: string) => request<any>(`/users/${id}`),
   getStats: (id: string) => request<any>(`/users/${id}/stats`),
-  getRankings: (scope: 'world' | 'state' = 'world', state?: string) =>
-    request<any[]>(`/users/rankings?scope=${scope}${state ? `&state=${encodeURIComponent(state)}` : ''}`),
+  getRankings: (scope: 'world' | 'state' = 'world', state?: string, district?: string) =>
+    request<any[]>(`/users/rankings?scope=${scope}${state ? `&state=${encodeURIComponent(state)}` : ''}${district ? `&district=${encodeURIComponent(district)}` : ''}`),
+  getH2H: (aId: string, bId: string) =>
+    request<any>(`/users/h2h?a=${encodeURIComponent(aId)}&b=${encodeURIComponent(bId)}`),
 };
 
 // ── Entity Autocomplete ───────────────────────────────────────────────────────

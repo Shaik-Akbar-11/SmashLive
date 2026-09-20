@@ -93,9 +93,10 @@ export async function recalculateAllRankings(): Promise<void> {
  * Get ranked list of players.
  * Optional filter by state for state-level rankings.
  */
-export async function getRankings(scope: 'world' | 'state', state?: string) {
+export async function getRankings(scope: 'world' | 'state', state?: string, district?: string) {
   const filter: any = { matchesPlayed: { $gt: 0 } };
   if (scope === 'state' && state) filter.state = state;
+  if (district) filter.district = district;
 
   const users = await User.find(filter)
     .select('name smashId state district gender rankingPoints matchesPlayed matchesWon matchesLost currentStreak lastMatchAt')

@@ -2,6 +2,10 @@ import mongoose from 'mongoose';
 import { Tournament } from '../models/Tournament';
 import { Participant } from '../models/Participant';
 import { Match } from '../models/Match';
+import { User } from '../models/User';
+
+// Ranking points for tournament results
+const TOURNAMENT_POINTS = { winner: 50, runnerUp: 25, semiFinal: 10, quarterFinal: 5 };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -243,10 +247,36 @@ export const TournamentService = {
         if (isSlotA) nextSlot.participantA = slot.winner;
         else         nextSlot.participantB = slot.winner;
       } else {
-        // Final completed
+        // Final completed — award ranking points
         tournament.status = 'completed';
         (tournament as any).winner = slot.winner;
         await Participant.findByIdAndUpdate(winnerParticipantId, { status: 'winner' });
+
+        // Award points to winner
+        const winnerP = await Participant.findById(winnerParticipantId).lean();
+        if (winnerP?.phone) {
+          await User.findOneAndUpdate(
+            { mobile: winnerP.phone },
+            { $inc: { rankingPoints: TOURNAMENT_POINTS.winner, tournamentsWon: 1 } }
+          );
+        }
+
+        // Award runner-up points
+        const loserPId = String(slot.participantA) === winnerParticipantId ? slot.participantB : slot.participantA;
+        const loserP   = loserPId ? await Participant.findById(loserPId).lean() : null;
+        if (loserP?.phone) {
+          await User.findOneAndUpdate(
+            { mobile: loserP.phone },
+            { $inc: { rankingPoints: TOURNAMENT_POINTS.runnerUp } }
+          );
+        }
+
+        // Increment tournamentsPlayed for all participants
+        const allParticipants = await Participant.find({ tournament_id: tournament._id }).lean();
+        const phones = allParticipants.map(p => p.phone).filter(Boolean);
+        if (phones.length) {
+          await User.updateMany({ mobile: { $in: phones } }, { $inc: { tournamentsPlayed: 1 } });
+        }
       }
 
       const loserId = String(slot.participantA) === wId ? slot.participantB : slot.participantA;
