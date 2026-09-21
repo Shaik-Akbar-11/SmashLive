@@ -17,7 +17,7 @@ import { notFound, errorHandler } from './middlewares/error.middleware';
 import { initMatchSockets } from './sockets/match.socket';
 import { config, validateConfig } from './config';
 import { setEmailProvider } from './services/otp.service';
-import { ResendEmailProvider, GmailSmtpProvider } from './services/email.provider';
+import { GmailSmtpProvider } from './services/email.provider';
 import type { EmailProvider } from './services/email.provider';
 
 // ── Startup validation ───────────────────────────────────────────────────────
@@ -26,26 +26,20 @@ validateConfig();
 // ── Wire email provider ──────────────────────────────────────────────────────
 let provider: EmailProvider;
 
-const smtpUser = process.env.SMTP_USER;
-const smtpPass = process.env.SMTP_PASS;
-const smtpHost = process.env.SMTP_HOST || 'smtp.gmail.com';
-const smtpPort = parseInt(process.env.SMTP_PORT || '587');
-const emailFrom = process.env.EMAIL_FROM || smtpUser || '';
+const smtpUser = process.env.SMTP_USER || '';
+const smtpPass = process.env.SMTP_PASS || '';
+const emailFrom = process.env.EMAIL_FROM || smtpUser;
 
 if (smtpUser && smtpPass) {
-  // Gmail SMTP takes priority when credentials are set
-  provider = new GmailSmtpProvider(smtpHost, smtpPort, smtpUser, smtpPass, emailFrom, 10);
-  console.log('[Email] Gmail SMTP provider ready.');
-} else if (config.resendApiKey && config.emailFrom) {
-  provider = new ResendEmailProvider(config.resendApiKey, config.emailFrom, 10);
-  console.log('[Email] Resend email provider ready.');
+  provider = new GmailSmtpProvider(smtpUser, smtpPass, emailFrom, 10);
+  console.log(`[Email] Gmail SMTP ready — sending from ${emailFrom}`);
 } else {
   provider = {
     async sendOtpEmail(email: string, otp: string) {
       console.log(`[DEV] OTP for ${email}: ${otp}`);
     },
   };
-  console.warn('[Email] No email config — using console OTP logging (dev only).');
+  console.warn('[Email] No SMTP config — OTPs logged to console only.');
 }
 
 setEmailProvider(provider);

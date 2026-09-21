@@ -3,29 +3,12 @@ export const config = {
   mongoUri:  process.env.MONGODB_URI || 'mongodb://localhost:27017/smashlive',
   jwtSecret: process.env.JWT_SECRET  || 'smash_secret_key_2024',
   jwtExpire: process.env.JWT_EXPIRE  || '24h',
-
-  // Email OTP delivery via Resend HTTP API (HTTPS port 443 — no SMTP firewall issues)
-  resendApiKey: process.env.RESEND_API_KEY || '',
-  emailFrom:    process.env.EMAIL_FROM     || '',
 };
 
-/**
- * Called once at startup.
- * In production the server refuses to start if Resend config is missing.
- * In development it falls back to console-logging the OTP.
- */
 export const validateConfig = (): void => {
   const isProd = process.env.NODE_ENV === 'production';
-  const hasResend = !!(process.env.RESEND_API_KEY && process.env.EMAIL_FROM);
-  const hasSmtp   = !!(process.env.SMTP_USER && process.env.SMTP_PASS);
-  const missing   = !hasResend && !hasSmtp;
-
-  if (missing && isProd) {
-    console.error('[Config] FATAL: Configure either (RESEND_API_KEY + EMAIL_FROM) or (SMTP_USER + SMTP_PASS) in production.');
-    process.exit(1);
-  }
-
-  if (missing) {
-    console.warn('[Config] WARNING: No email config set — OTPs will be logged to console (dev only).');
+  const hasSmtp = !!(process.env.SMTP_USER && process.env.SMTP_PASS);
+  if (!hasSmtp && isProd) {
+    console.warn('[Config] WARNING: SMTP_USER / SMTP_PASS not set — OTPs will only be logged to console.');
   }
 };

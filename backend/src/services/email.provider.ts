@@ -1,110 +1,19 @@
-/**
- * Email provider interface + Resend implementation.
- * The auth service imports only the interface; it never imports Resend directly.
- * Uses native fetch — no new runtime dependency.
- */
+import nodemailer from 'nodemailer';
 
 export interface EmailProvider {
   sendOtpEmail(email: string, otp: string): Promise<void>;
 }
 
 /**
- * Resend HTTP API provider.
- * Docs: https://resend.com/docs/api-reference/emails/send-email
- */
-export class ResendEmailProvider implements EmailProvider {
-  private readonly apiKey: string;
-  private readonly from: string;
-  private readonly otpTtlMinutes: number;
-
-  constructor(apiKey: string, from: string, otpTtlMinutes: number) {
-    this.apiKey = apiKey;
-    this.from = from;
-    this.otpTtlMinutes = otpTtlMinutes;
-  }
-
-  async sendOtpEmail(email: string, otp: string): Promise<void> {
-    const subject = 'Your SmashLive Verification Code';
-    const html = this.buildHtml(otp);
-    const text = this.buildText(otp);
-
-    const res = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${this.apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        from: this.from,
-        to: [email],
-        subject,
-        html,
-        text,
-      }),
-    });
-
-    if (!res.ok) {
-      // Log technical details server-side only — never include the OTP, key, or token
-      const body = await res.text().catch(() => '(unreadable)');
-      console.error(`[Email] Resend error ${res.status}: ${body}`);
-      throw new Error('Unable to send OTP. Please try again.');
-    }
-  }
-
-  private buildHtml(otp: string): string {
-    return `
-<!DOCTYPE html>
-<html>
-<head><meta charset="UTF-8"></head>
-<body style="font-family:Arial,sans-serif;background:#f4f4f4;padding:32px">
-  <div style="max-width:480px;margin:0 auto;background:#fff;border-radius:12px;padding:32px;border-top:4px solid #0EA5E9">
-    <h2 style="color:#0B1F3A;margin-top:0">SmashLive</h2>
-    <p style="color:#333">Hello,</p>
-    <p style="color:#333">Your SmashLive verification code is:</p>
-    <div style="font-size:36px;font-weight:900;letter-spacing:8px;color:#0EA5E9;text-align:center;padding:24px 0">
-      ${otp}
-    </div>
-    <p style="color:#555">This code will expire in ${this.otpTtlMinutes} minutes.</p>
-    <p style="color:#555">If you did not request this code, you can safely ignore this email.</p>
-    <p style="color:#555;margin-bottom:0">Regards,<br>SmashLive Team</p>
-  </div>
-</body>
-</html>`.trim();
-  }
-
-  private buildText(otp: string): string {
-    return [
-      'Hello,',
-      '',
-      'Your SmashLive verification code is:',
-      '',
-      otp,
-      '',
-      `This code will expire in ${this.otpTtlMinutes} minutes.`,
-      '',
-      'If you did not request this code, you can safely ignore this email.',
-      '',
-      'Regards,',
-      'SmashLive Team',
-    ].join('\n');
-  }
-}
-
-import nodemailer from 'nodemailer';
-
-/**
  * Gmail SMTP provider via Nodemailer.
- * Credentials are read exclusively from environment variables — never hardcoded.
- * SMTP_PASS is never logged.
+ * Uses App Password — never the real Gmail password.
  */
 export class GmailSmtpProvider implements EmailProvider {
+  private readonly transporter: nodemailer.Transporter;
   private readonly from: string;
   private readonly otpTtlMinutes: number;
-  private readonly transporter: nodemailer.Transporter;
 
   constructor(
-    smtpHost: string,
-    smtpPort: number,
     smtpUser: string,
     smtpPass: string,
     from: string,
@@ -113,9 +22,7 @@ export class GmailSmtpProvider implements EmailProvider {
     this.from = from;
     this.otpTtlMinutes = otpTtlMinutes;
     this.transporter = nodemailer.createTransport({
-      host: smtpHost,
-      port: smtpPort,
-      secure: smtpPort === 465, // true for port 465 (SSL), false for 587 (TLS)
+      service: 'gmail',  // Uses Gmail's built-in config (no need for host/port)
       auth: { user: smtpUser, pass: smtpPass },
     });
   }
@@ -130,47 +37,38 @@ export class GmailSmtpProvider implements EmailProvider {
         text:    this.buildText(otp),
       });
     } catch (err: any) {
-      // Log technical details server-side only — never include OTP, credentials, or tokens
       console.error(`[Email] Gmail SMTP error: ${err?.message ?? 'unknown'}`);
       throw new Error('Unable to send OTP. Please try again.');
     }
   }
 
   private buildHtml(otp: string): string {
-    return `
-<!DOCTYPE html>
+    return `<!DOCTYPE html>
 <html>
 <head><meta charset="UTF-8"></head>
-<body style="font-family:Arial,sans-serif;background:#f4f4f4;padding:32px">
+<body style="font-family:Arial,sans-serif;background:#f4f4f4;padding:32px;margin:0">
   <div style="max-width:480px;margin:0 auto;background:#fff;border-radius:12px;padding:32px;border-top:4px solid #0EA5E9">
-    <h2 style="color:#0B1F3A;margin-top:0">SmashLive</h2>
-    <p style="color:#333">Hello,</p>
-    <p style="color:#333">Your SmashLive verification code is:</p>
-    <div style="font-size:36px;font-weight:900;letter-spacing:8px;color:#0EA5E9;text-align:center;padding:24px 0">
-      ${otp}
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px">
+      <div style="background:#0B1F3A;padding:10px;border-radius:10px">
+        <span style="color:#0EA5E9;font-size:20px;font-weight:900">⚡</span>
+      </div>
+      <span style="font-size:20px;font-weight:900;color:#0B1F3A;letter-spacing:-0.5px">Smash<span style="color:#0EA5E9">Live</span></span>
     </div>
-    <p style="color:#555">This code will expire in ${this.otpTtlMinutes} minutes.</p>
-    <p style="color:#555">If you did not request this code, you can safely ignore this email.</p>
-    <p style="color:#555;margin-bottom:0">Regards,<br>SmashLive Team</p>
+    <h2 style="color:#0B1F3A;margin:0 0 8px 0;font-size:22px">Verify Your Identity</h2>
+    <p style="color:#555;margin:0 0 24px 0;font-size:14px">Use the code below to complete your SmashLive verification. This code expires in ${this.otpTtlMinutes} minutes.</p>
+    <div style="background:#F0F9FF;border:2px solid #0EA5E9;border-radius:12px;padding:24px;text-align:center;margin-bottom:24px">
+      <p style="margin:0 0 8px 0;color:#0B1F3A;font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase">Your OTP Code</p>
+      <p style="margin:0;font-size:40px;font-weight:900;letter-spacing:12px;color:#0EA5E9;font-family:monospace">${otp}</p>
+    </div>
+    <p style="color:#888;font-size:12px;margin:0">If you did not request this code, you can safely ignore this email.</p>
+    <hr style="border:none;border-top:1px solid #eee;margin:24px 0">
+    <p style="color:#aaa;font-size:11px;margin:0;text-align:center">© SmashLive — The Badminton Network</p>
   </div>
 </body>
-</html>`.trim();
+</html>`;
   }
 
   private buildText(otp: string): string {
-    return [
-      'Hello,',
-      '',
-      'Your SmashLive verification code is:',
-      '',
-      otp,
-      '',
-      `This code will expire in ${this.otpTtlMinutes} minutes.`,
-      '',
-      'If you did not request this code, you can safely ignore this email.',
-      '',
-      'Regards,',
-      'SmashLive Team',
-    ].join('\n');
+    return `SmashLive Verification Code\n\nYour OTP: ${otp}\n\nThis code expires in ${this.otpTtlMinutes} minutes.\n\nIf you did not request this, ignore this email.`;
   }
 }
