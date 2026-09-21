@@ -123,7 +123,7 @@ export class GmailSmtpProvider implements EmailProvider {
   async sendOtpEmail(email: string, otp: string): Promise<void> {
     try {
       await this.transporter.sendMail({
-        from:    this.from,
+        from:    `SmashLive <${this.from}>`,
         to:      email,
         subject: 'Your SmashLive Verification Code',
         html:    this.buildHtml(otp),
