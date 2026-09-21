@@ -13,39 +13,39 @@
  */
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import nodemailer from 'nodemailer';
+import { createTransport } from 'nodemailer';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const OTP_RE   = /^\d{6}$/;
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // ── Method guard ────────────────────────────────────────────────────────────
+  // ── Method guard ─────────────────────────────────────────────────────────────
   if (req.method !== 'POST') {
     return res.status(405).json({ success: false, message: 'Method not allowed' });
   }
 
   // ── Environment variable check ───────────────────────────────────────────────
-  const gmailUser    = process.env.GMAIL_USER;
-  const gmailPass    = process.env.GMAIL_PASS;
+  const gmailUser      = process.env.GMAIL_USER;
+  const gmailPass      = process.env.GMAIL_PASS;
   const functionSecret = process.env.EMAIL_FUNCTION_SECRET;
 
   if (!gmailUser || !gmailPass || !functionSecret) {
-    console.error('[send-email] Missing required environment variables (GMAIL_USER, GMAIL_PASS, or EMAIL_FUNCTION_SECRET)');
+    console.error('[send-email] Missing required environment variables');
     return res.status(500).json({ success: false, message: 'Email service configuration error' });
   }
 
-  // ── Authorization ────────────────────────────────────────────────────────────
+  // ── Authorization ─────────────────────────────────────────────────────────────
   const authHeader = req.headers['authorization'];
   if (!authHeader || typeof authHeader !== 'string' || !authHeader.startsWith('Bearer ')) {
     return res.status(401).json({ success: false, message: 'Unauthorized' });
   }
 
-  const token = authHeader.slice(7); // strip "Bearer "
+  const token = authHeader.slice(7);
   if (token !== functionSecret) {
     return res.status(401).json({ success: false, message: 'Unauthorized' });
   }
 
-  // ── Input validation ─────────────────────────────────────────────────────────
+  // ── Input validation ──────────────────────────────────────────────────────────
   const { to, otp } = req.body ?? {};
 
   if (!to || typeof to !== 'string' || !EMAIL_RE.test(to.trim())) {
@@ -58,28 +58,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const recipientEmail = to.trim().toLowerCase();
 
-  // ── Send email via Gmail SMTP ────────────────────────────────────────────────
-  const transporter = nodemailer.createTransport({
-    host:       'smtp.gmail.com',
-    port:       587,
-    secure:     false,     // STARTTLS upgrade after connect
-    requireTLS: true,      // reject if STARTTLS not available
-    auth:       { user: gmailUser, pass: gmailPass },
+  // ── Send email via Gmail SMTP ─────────────────────────────────────────────────
+  const transporter = createTransport({
+    host:              'smtp.gmail.com',
+    port:              587,
+    secure:            false,
+    requireTLS:        true,
+    auth:              { user: gmailUser, pass: gmailPass },
     connectionTimeout: 10_000,
     greetingTimeout:   8_000,
     socketTimeout:     15_000,
   });
-
-  const html = buildHtml(otp);
-  const text = buildText(otp);
 
   try {
     await transporter.sendMail({
       from:    gmailUser,
       to:      recipientEmail,
       subject: 'SmashLive OTP Verification',
-      html,
-      text,
+      html:    buildHtml(otp),
+      text:    buildText(otp),
     });
 
     return res.status(200).json({ success: true, message: 'OTP email sent' });
