@@ -1,49 +1,49 @@
-import nodemailer from 'nodemailer';
-
 export interface EmailProvider {
   sendOtpEmail(email: string, otp: string): Promise<void>;
 }
 
-export class SmtpEmailProvider implements EmailProvider {
-  private readonly transporter: nodemailer.Transporter;
+/**
+ * Brevo (Sendinblue) HTTP API provider.
+ * Uses HTTPS port 443 — never blocked by cloud providers.
+ * API docs: https://developers.brevo.com/reference/sendtransacemail
+ */
+export class BrevoEmailProvider implements EmailProvider {
+  private readonly apiKey: string;
   private readonly from: string;
+  private readonly fromName: string;
   private readonly otpTtlMinutes: number;
 
-  constructor(
-    host: string,
-    port: number,
-    user: string,
-    pass: string,
-    from: string,
-    otpTtlMinutes: number,
-  ) {
+  constructor(apiKey: string, from: string, fromName: string, otpTtlMinutes: number) {
+    this.apiKey = apiKey;
     this.from = from;
+    this.fromName = fromName;
     this.otpTtlMinutes = otpTtlMinutes;
-    this.transporter = nodemailer.createTransport({
-      host,
-      port,
-      secure: port === 465,
-      auth: { user, pass },
-      connectionTimeout: 15000,
-      greetingTimeout: 15000,
-      socketTimeout: 15000,
-    });
   }
 
   async sendOtpEmail(email: string, otp: string): Promise<void> {
-    try {
-      await this.transporter.sendMail({
-        from:    `SmashLive <${this.from}>`,
-        to:      email,
+    const res = await fetch('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: {
+        'api-key': this.apiKey,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify({
+        sender: { name: this.fromName, email: this.from },
+        to: [{ email }],
         subject: 'Your SmashLive Verification Code',
-        html:    this.buildHtml(otp),
-        text:    this.buildText(otp),
-      });
-      console.log(`[Email] OTP sent to ${email}`);
-    } catch (err: any) {
-      console.error(`[Email] SMTP error: ${err?.message ?? 'unknown'}`);
+        htmlContent: this.buildHtml(otp),
+        textContent: this.buildText(otp),
+      }),
+    });
+
+    if (!res.ok) {
+      const body = await res.text().catch(() => '(unreadable)');
+      console.error(`[Email] Brevo error ${res.status}: ${body}`);
       throw new Error('Unable to send OTP. Please try again.');
     }
+
+    console.log(`[Email] OTP sent to ${email} via Brevo`);
   }
 
   private buildHtml(otp: string): string {
