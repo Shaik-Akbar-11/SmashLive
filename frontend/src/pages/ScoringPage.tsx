@@ -144,9 +144,11 @@ const ScoringPage = () => {
         // Fall through to offline fallback
       }
     }
+
+    // Offline fallback
+    try {
       const scoreBeforePoint = [...(matchData.current_score || [0, 0])];
       const updated = localScorePoint(matchData, side);
-      // Save the score snapshot AFTER this point (before any game reset)
       const pointScore: [number, number] = [
         scoreBeforePoint[0] + (side === 1 ? 1 : 0),
         scoreBeforePoint[1] + (side === 2 ? 1 : 0),
@@ -179,6 +181,9 @@ const ScoringPage = () => {
         // Fall through to local fallback
       }
     }
+
+    // Local fallback undo
+    try {
       const events: any[] = matchData?.events || [];
       const score    = [...(matchData?.current_score || [0, 0])] as [number, number];
       const setsWon  = [...(matchData?.sets_won    || [0, 0])]   as [number, number];
@@ -268,7 +273,6 @@ const ScoringPage = () => {
     const updated = { ...matchData, status: 'completed' };
     setMatchData(updated);
     localStorage.setItem(matchId, JSON.stringify(updated));
-    }
     navigate('/smashed');
   };
 
