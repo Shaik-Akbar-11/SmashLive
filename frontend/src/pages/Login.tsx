@@ -207,8 +207,10 @@ const Login = () => {
                 )}
 
                 <div className="space-y-1.5 pb-2">
-                  <Label className="text-[10px] font-black uppercase text-slate-400 ml-1">Email Address</Label>
+                  <Label htmlFor="email" className="text-[10px] font-black uppercase text-slate-400 ml-1">Email Address</Label>
                   <Input
+                    id="email"
+                    name="email"
                     type="email"
                     value={email}
                     onChange={e => setEmail(e.target.value)}
