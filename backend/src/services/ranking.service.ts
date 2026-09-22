@@ -94,7 +94,7 @@ export async function recalculateAllRankings(): Promise<void> {
  * Optional filter by state for state-level rankings.
  */
 export async function getRankings(scope: 'world' | 'state', state?: string, district?: string) {
-  const filter: any = { matchesPlayed: { $gt: 0 } };
+  const filter: any = {};  // Show ALL players, not just those with matches
   if (scope === 'state' && state) filter.state = state;
   if (district) filter.district = district;
 
