@@ -110,12 +110,18 @@ const LiveBroadcast = () => {
   // ── Derived values ─────────────────────────────────────────────────────
   const p1Name  = matchData?.players?.p1?.name || matchData?.players?.sideA?.[0]?.name || 'Athlete A';
   const p2Name  = matchData?.players?.p2?.name || matchData?.players?.sideB?.[0]?.name || 'Athlete B';
-  const score   = (matchData?.current_score as [number, number]) || [0, 0];
-  const setsWon = (matchData?.sets_won    as [number, number]) || [0, 0];
+  const setsWon = (matchData?.sets_won as [number, number]) || [0, 0];
   const serving = (matchData?.serving as 1 | 2) || 1;
   const events: any[] = matchData?.events || [];
   const gameScores: any[] = matchData?.game_scores || [];
   const isDone  = matchData?.status === 'completed';
+
+  // For completed matches show last game score, not the reset 0-0
+  const rawScore = (matchData?.current_score as [number, number]) || [0, 0];
+  const lastGame = gameScores[gameScores.length - 1];
+  const score: [number, number] = isDone && lastGame
+    ? [lastGame.scoreA, lastGame.scoreB]
+    : rawScore;
 
   const commentary = buildCommentary(events, p1Name, p2Name);
   const stats      = computeStats(events);
