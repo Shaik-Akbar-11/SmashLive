@@ -187,7 +187,10 @@ router.get('/:id/stats', async (req: Request, res: Response) => {
     // Compute actual counts from match history (more accurate than User model fields
     // which only update for competitive matches via ranking service)
     const computedPlayed = myMatches.length;
-    const computedWon    = myMatches.filter(m => {
+    const sortedMatches = myMatches.sort((a: any, b: any) =>
+      new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime()
+    );
+    const computedWon = sortedMatches.filter(m => {
       const p = m.players as any;
       const isSideA = JSON.stringify(p?.p1 || p?.sideA || '').toLowerCase().includes(mobile)
         || JSON.stringify(p?.p1 || p?.sideA || '').toLowerCase().includes(name);
@@ -198,6 +201,24 @@ router.get('/:id/stats', async (req: Request, res: Response) => {
       ? Math.round((computedWon / computedPlayed) * 100)
       : 0;
 
+    // Compute streak from recent match history (most recent first)
+    let computedStreak = 0;
+    for (const m of sortedMatches) {
+      const p = m.players as any;
+      const isSideA = JSON.stringify(p?.p1 || p?.sideA || '').toLowerCase().includes(mobile)
+        || JSON.stringify(p?.p1 || p?.sideA || '').toLowerCase().includes(name);
+      const won = m.winner === (isSideA ? 1 : 2);
+      if (computedStreak === 0) {
+        computedStreak = won ? 1 : -1;
+      } else if (won && computedStreak > 0) {
+        computedStreak++;
+      } else if (!won && computedStreak < 0) {
+        computedStreak--;
+      } else {
+        break;
+      }
+    }
+
     res.json({
       user,
       stats: {
@@ -206,7 +227,7 @@ router.get('/:id/stats', async (req: Request, res: Response) => {
         matchesLost:       Math.max(user.matchesLost, computedLost),
         winRate:           `${Math.max(winRate, computedWinRate)}%`,
         rankingPoints:     user.rankingPoints,
-        currentStreak:     user.currentStreak,
+        currentStreak:     computedStreak || user.currentStreak,
         tournamentsPlayed: user.tournamentsPlayed,
         tournamentsWon:    user.tournamentsWon,
         smashes,
