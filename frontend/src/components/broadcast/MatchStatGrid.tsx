@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils';
 interface MatchStatGridProps {
   stats?: {
     totalRallies?: number;
-    longestRally?: string;
+    longestGame?: string;
     winners?: number;
     accuracy?: string;
     faults?: number;
@@ -16,12 +16,12 @@ interface MatchStatGridProps {
 
 const MatchStatGrid = ({ stats }: MatchStatGridProps) => {
   const statItems = [
-    { label: "Total Rallies", val: stats?.totalRallies ?? "0", icon: Activity, color: "text-sky-500", bg: "bg-sky-50" },
-    { label: "Longest Rally", val: stats?.longestRally ?? "--", icon: Timer, color: "text-amber-500", bg: "bg-amber-50" },
-    { label: "Winners", val: stats?.winners ?? "0", icon: Zap, color: "text-sky-600", bg: "bg-sky-50" },
-    { label: "Net Accuracy", val: stats?.accuracy ?? "0%", icon: Target, color: "text-indigo-500", bg: "bg-indigo-50" },
-    { label: "Faults", val: stats?.faults ?? "0", icon: AlertTriangle, color: "text-red-500", bg: "bg-red-50" },
-    { label: "Errors", val: stats?.errors ?? "0", icon: Flame, color: "text-orange-500", bg: "bg-orange-50" },
+    { label: "Total Points",  val: stats?.totalRallies ?? "0",    icon: Activity,      color: "text-sky-500",    bg: "bg-sky-50" },
+    { label: "Longest Game",  val: stats?.longestGame  ?? "--",   icon: Timer,         color: "text-amber-500",  bg: "bg-amber-50" },
+    { label: "Winners",       val: stats?.winners      ?? "0",    icon: Zap,           color: "text-sky-600",    bg: "bg-sky-50" },
+    { label: "Net Accuracy",  val: stats?.accuracy     ?? "0%",   icon: Target,        color: "text-indigo-500", bg: "bg-indigo-50" },
+    { label: "Faults",        val: stats?.faults       ?? "0",    icon: AlertTriangle, color: "text-red-500",    bg: "bg-red-50" },
+    { label: "Errors",        val: stats?.errors       ?? "0",    icon: Flame,         color: "text-orange-500", bg: "bg-orange-50" },
   ];
 
   return (

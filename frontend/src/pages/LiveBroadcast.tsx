@@ -49,14 +49,18 @@ function computeStats(events: any[], gameScores?: any[]) {
   const total   = points.length;
   const accuracy = total > 0 ? `${Math.round(((total - errors) / total) * 100)}%` : '0%';
 
-  // Longest rally = game with most points (best approximation without shot tracking)
-  let longestRally: string | number = '--';
+  // Longest game = game with most total points
+  let longestGame = '--';
   if (gameScores && gameScores.length > 0) {
-    const maxPoints = Math.max(...gameScores.map((g: any) => (g.scoreA || 0) + (g.scoreB || 0)));
-    longestRally = maxPoints > 0 ? `${maxPoints} pts` : '--';
+    let maxPts = 0, maxIdx = 0;
+    gameScores.forEach((g: any, i: number) => {
+      const pts = (g.scoreA || 0) + (g.scoreB || 0);
+      if (pts > maxPts) { maxPts = pts; maxIdx = i; }
+    });
+    longestGame = `G${maxIdx + 1}: ${gameScores[maxIdx].scoreA}-${gameScores[maxIdx].scoreB}`;
   }
 
-  return { totalRallies: total, longestRally, winners, accuracy, faults: errors, errors };
+  return { totalRallies: total, longestGame, winners, accuracy, faults: errors, errors };
 }
 
 // ── Component ──────────────────────────────────────────────────────────────
