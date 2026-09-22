@@ -1,45 +1,51 @@
+import nodemailer from 'nodemailer';
+
 export interface EmailProvider {
   sendOtpEmail(email: string, otp: string): Promise<void>;
 }
 
 /**
- * Resend HTTP API provider — uses HTTPS port 443, never blocked by cloud providers.
- * Docs: https://resend.com/docs/api-reference/emails/send-email
+ * Brevo (Sendinblue) SMTP provider.
+ * Uses smtp-relay.brevo.com:587 with TLS — works on Render.
  */
-export class ResendEmailProvider implements EmailProvider {
-  private readonly apiKey: string;
+export class SmtpEmailProvider implements EmailProvider {
+  private readonly transporter: nodemailer.Transporter;
   private readonly from: string;
   private readonly otpTtlMinutes: number;
 
-  constructor(apiKey: string, from: string, otpTtlMinutes: number) {
-    this.apiKey = apiKey;
+  constructor(
+    host: string,
+    port: number,
+    user: string,
+    pass: string,
+    from: string,
+    otpTtlMinutes: number,
+  ) {
     this.from = from;
     this.otpTtlMinutes = otpTtlMinutes;
+    this.transporter = nodemailer.createTransport({
+      host,
+      port,
+      secure: false,
+      auth: { user, pass },
+      tls: { rejectUnauthorized: false },
+    });
   }
 
   async sendOtpEmail(email: string, otp: string): Promise<void> {
-    const res = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${this.apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        from: this.from,
-        to: [email],
+    try {
+      await this.transporter.sendMail({
+        from:    `SmashLive <${this.from}>`,
+        to:      email,
         subject: 'Your SmashLive Verification Code',
-        html: this.buildHtml(otp),
-        text: this.buildText(otp),
-      }),
-    });
-
-    if (!res.ok) {
-      const body = await res.text().catch(() => '(unreadable)');
-      console.error(`[Email] Resend error ${res.status}: ${body}`);
+        html:    this.buildHtml(otp),
+        text:    this.buildText(otp),
+      });
+      console.log(`[Email] OTP sent to ${email}`);
+    } catch (err: any) {
+      console.error(`[Email] SMTP error: ${err?.message ?? 'unknown'}`);
       throw new Error('Unable to send OTP. Please try again.');
     }
-
-    console.log(`[Email] OTP sent to ${email} via Resend`);
   }
 
   private buildHtml(otp: string): string {

@@ -17,7 +17,7 @@ import { notFound, errorHandler } from './middlewares/error.middleware';
 import { initMatchSockets } from './sockets/match.socket';
 import { config, validateConfig } from './config';
 import { setEmailProvider } from './services/otp.service';
-import { ResendEmailProvider } from './services/email.provider';
+import { SmtpEmailProvider } from './services/email.provider';
 import type { EmailProvider } from './services/email.provider';
 
 // ── Startup validation ───────────────────────────────────────────────────────
@@ -26,19 +26,22 @@ validateConfig();
 // ── Wire email provider ──────────────────────────────────────────────────────
 let provider: EmailProvider;
 
-const resendKey  = process.env.RESEND_API_KEY || '';
-const emailFrom  = process.env.EMAIL_FROM || 'onboarding@resend.dev';
+const smtpHost = process.env.SMTP_HOST || '';
+const smtpPort = parseInt(process.env.SMTP_PORT || '587');
+const smtpUser = process.env.SMTP_USER || '';
+const smtpPass = process.env.SMTP_PASS || '';
+const emailFrom = process.env.EMAIL_FROM || smtpUser;
 
-if (resendKey) {
-  provider = new ResendEmailProvider(resendKey, `SmashLive <${emailFrom}>`, 10);
-  console.log(`[Email] Resend ready — sending from ${emailFrom}`);
+if (smtpHost && smtpUser && smtpPass) {
+  provider = new SmtpEmailProvider(smtpHost, smtpPort, smtpUser, smtpPass, emailFrom, 10);
+  console.log(`[Email] SMTP ready — ${smtpHost}:${smtpPort} from ${emailFrom}`);
 } else {
   provider = {
     async sendOtpEmail(email: string, otp: string) {
       console.log(`[DEV] OTP for ${email}: ${otp}`);
     },
   };
-  console.warn('[Email] No RESEND_API_KEY — OTPs logged to console only.');
+  console.warn('[Email] No SMTP config — OTPs logged to console only.');
 }
 
 setEmailProvider(provider);
