@@ -184,13 +184,27 @@ router.get('/:id/stats', async (req: Request, res: Response) => {
       ? Math.round((user.matchesWon / user.matchesPlayed) * 100)
       : 0;
 
+    // Compute actual counts from match history (more accurate than User model fields
+    // which only update for competitive matches via ranking service)
+    const computedPlayed = myMatches.length;
+    const computedWon    = myMatches.filter(m => {
+      const p = m.players as any;
+      const isSideA = JSON.stringify(p?.p1 || p?.sideA || '').toLowerCase().includes(mobile)
+        || JSON.stringify(p?.p1 || p?.sideA || '').toLowerCase().includes(name);
+      return m.winner === (isSideA ? 1 : 2);
+    }).length;
+    const computedLost = computedPlayed - computedWon;
+    const computedWinRate = computedPlayed > 0
+      ? Math.round((computedWon / computedPlayed) * 100)
+      : 0;
+
     res.json({
       user,
       stats: {
-        matchesPlayed:     user.matchesPlayed,
-        matchesWon:        user.matchesWon,
-        matchesLost:       user.matchesLost,
-        winRate:           `${winRate}%`,
+        matchesPlayed:     Math.max(user.matchesPlayed, computedPlayed),
+        matchesWon:        Math.max(user.matchesWon, computedWon),
+        matchesLost:       Math.max(user.matchesLost, computedLost),
+        winRate:           `${Math.max(winRate, computedWinRate)}%`,
         rankingPoints:     user.rankingPoints,
         currentStreak:     user.currentStreak,
         tournamentsPlayed: user.tournamentsPlayed,
