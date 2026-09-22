@@ -118,19 +118,28 @@ const ScoringPage = () => {
   }, [matchId, navigate]);
 
   // ── Handlers ─────────────────────────────────────────────────────────────
+  const isLocalMatch = matchId?.startsWith('local_');
+
   const handlePoint = async (side: 1 | 2, action: string) => {
     if (!matchId || scoring) return;
     if (matchData?.status === 'completed') { showError('Match is already completed'); return; }
     setActiveOverlay(null);
     setScoring(true);
-    try {
-      const res = await MatchAPI.scorePoint(matchId, side, action);
-      setMatchData(res.match);
-      localStorage.setItem(matchId, JSON.stringify(res.match));
-      if (res.matchCompleted)     showSuccess('Match Complete!');
-      else if (res.gameCompleted) showSuccess('Game Complete!');
-    } catch {
-      // Offline fallback
+
+    // Skip API for local matches — go straight to offline fallback
+    if (!isLocalMatch) {
+      try {
+        const res = await MatchAPI.scorePoint(matchId, side, action);
+        setMatchData(res.match);
+        localStorage.setItem(matchId, JSON.stringify(res.match));
+        if (res.matchCompleted)     showSuccess('Match Complete!');
+        else if (res.gameCompleted) showSuccess('Game Complete!');
+        setScoring(false);
+        return;
+      } catch {
+        // Fall through to offline fallback
+      }
+    }
       const scoreBeforePoint = [...(matchData.current_score || [0, 0])];
       const updated = localScorePoint(matchData, side);
       // Save the score snapshot AFTER this point (before any game reset)
@@ -154,13 +163,18 @@ const ScoringPage = () => {
   const handleUndo = async () => {
     if (!matchId || scoring) return;
     setScoring(true);
-    try {
-      const res = await MatchAPI.undo(matchId);
-      setMatchData(res);
-      localStorage.setItem(matchId, JSON.stringify(res));
-      showSuccess('Point undone');
-    } catch {
-      // Local fallback
+    if (!isLocalMatch) {
+      try {
+        const res = await MatchAPI.undo(matchId);
+        setMatchData(res);
+        localStorage.setItem(matchId, JSON.stringify(res));
+        showSuccess('Point undone');
+        setScoring(false);
+        return;
+      } catch {
+        // Fall through to local fallback
+      }
+    }
       const events: any[] = matchData?.events || [];
       const score    = [...(matchData?.current_score || [0, 0])] as [number, number];
       const setsWon  = [...(matchData?.sets_won    || [0, 0])]   as [number, number];
@@ -223,27 +237,33 @@ const ScoringPage = () => {
 
   const handleStart = async () => {
     if (!matchId) return;
-    try {
-      const res = await MatchAPI.start(matchId);
-      setMatchData(res);
-      localStorage.setItem(matchId, JSON.stringify(res));
-    } catch {
-      const updated = { ...matchData, status: 'live' };
-      setMatchData(updated);
-      localStorage.setItem(matchId, JSON.stringify(updated));
+    if (!isLocalMatch) {
+      try {
+        const res = await MatchAPI.start(matchId);
+        setMatchData(res);
+        localStorage.setItem(matchId, JSON.stringify(res));
+        return;
+      } catch {}
     }
+    const updated = { ...matchData, status: 'live' };
+    setMatchData(updated);
+    localStorage.setItem(matchId, JSON.stringify(updated));
   };
 
   const handleEnd = async () => {
     if (!matchId || !confirm('End this match?')) return;
-    try {
-      const res = await MatchAPI.end(matchId);
-      setMatchData(res);
-      localStorage.setItem(matchId, JSON.stringify(res));
-    } catch {
-      const updated = { ...matchData, status: 'completed' };
-      setMatchData(updated);
-      localStorage.setItem(matchId, JSON.stringify(updated));
+    if (!isLocalMatch) {
+      try {
+        const res = await MatchAPI.end(matchId);
+        setMatchData(res);
+        localStorage.setItem(matchId, JSON.stringify(res));
+        navigate('/smashed');
+        return;
+      } catch {}
+    }
+    const updated = { ...matchData, status: 'completed' };
+    setMatchData(updated);
+    localStorage.setItem(matchId, JSON.stringify(updated));
     }
     navigate('/smashed');
   };
