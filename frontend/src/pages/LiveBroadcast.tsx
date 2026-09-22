@@ -40,7 +40,7 @@ function buildCommentary(events: any[], p1Name: string, p2Name: string) {
 }
 
 // ── Match stats from events ────────────────────────────────────────────────
-function computeStats(events: any[]) {
+function computeStats(events: any[], gameScores?: any[]) {
   const points  = events.filter(e => e.type === 'point');
   const smashes = points.filter(e => (e.action || '').toLowerCase() === 'smash').length;
   const nets    = points.filter(e => (e.action || '').toLowerCase() === 'net').length;
@@ -49,7 +49,14 @@ function computeStats(events: any[]) {
   const total   = points.length;
   const accuracy = total > 0 ? `${Math.round(((total - errors) / total) * 100)}%` : '0%';
 
-  return { totalRallies: total, longestRally: '--', winners, accuracy, faults: errors, errors };
+  // Longest rally = game with most points (best approximation without shot tracking)
+  let longestRally: string | number = '--';
+  if (gameScores && gameScores.length > 0) {
+    const maxPoints = Math.max(...gameScores.map((g: any) => (g.scoreA || 0) + (g.scoreB || 0)));
+    longestRally = maxPoints > 0 ? `${maxPoints} pts` : '--';
+  }
+
+  return { totalRallies: total, longestRally, winners, accuracy, faults: errors, errors };
 }
 
 // ── Component ──────────────────────────────────────────────────────────────
@@ -124,7 +131,7 @@ const LiveBroadcast = () => {
     : rawScore;
 
   const commentary = buildCommentary(events, p1Name, p2Name);
-  const stats      = computeStats(events);
+  const stats      = computeStats(events, gameScores);
 
   if (loading) {
     return (
