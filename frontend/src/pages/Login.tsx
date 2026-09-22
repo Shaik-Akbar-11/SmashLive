@@ -23,7 +23,7 @@ const Login = () => {
   const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
   const [regData, setRegData] = useState({ name: '', gender: '', state: '', district: '' });
 
-  // ── Step 1: Send OTP via backend (Resend) ────────────────────────────────
+  // ── Step 1: Send OTP via backend ────────────────────────────────────────
   const handleSendOtp = async () => {
     if (activeTab === 'register') {
       if (!regData.name || !regData.gender || !regData.state || !regData.district) {
@@ -38,6 +38,16 @@ const Login = () => {
 
     setIsLoading(true);
     try {
+      // For login: verify the account exists BEFORE sending the OTP
+      if (activeTab === 'login') {
+        const exists = await AuthService.checkEmail(email.trim());
+        if (!exists) {
+          showError('No account found with this email. Please register first.');
+          setIsLoading(false);
+          return;
+        }
+      }
+
       await AuthService.sendOtp(email.trim());
       setStep('otp');
       showSuccess('OTP sent to ' + email.trim().toLowerCase());

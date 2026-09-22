@@ -20,6 +20,20 @@ export interface UserProfile {
 export const AuthService = {
   normalizeEmail,
 
+  /** GET /api/auth/check-email — returns whether an account exists */
+  async checkEmail(email: string): Promise<boolean> {
+    try {
+      const res = await fetch(
+        `${API_URL}/auth/check-email?email=${encodeURIComponent(normalizeEmail(email))}`,
+      );
+      if (!res.ok) return false;
+      const data = await res.json();
+      return !!data.exists;
+    } catch {
+      return false;
+    }
+  },
+
   /** POST /api/auth/send-otp */
   async sendOtp(email: string): Promise<void> {
     const res = await fetch(`${API_URL}/auth/send-otp`, {

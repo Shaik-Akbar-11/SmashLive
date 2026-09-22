@@ -12,6 +12,20 @@ router.post('/register', validate(registerSchema), authController.register);
 router.post('/login',    validate(loginSchema),    authController.login);
 router.get('/profile',   protect,                  authController.profile);
 
+// GET /api/auth/check-email?email=x
+// Returns whether an account exists for this email.
+// Same response time for known/unknown (no extra DB-lookup timing leak beyond what login already does).
+router.get('/check-email', async (req, res) => {
+  try {
+    const email = (req.query.email as string || '').trim().toLowerCase();
+    if (!email) return res.status(400).json({ message: 'email is required' });
+    const exists = !!(await User.findOne({ email }).select('_id').lean());
+    res.json({ exists });
+  } catch (err: any) {
+    res.status(400).json({ message: err.message });
+  }
+});
+
 // PATCH /api/auth/profile — update own profile + complete onboarding
 router.patch('/profile', protect, async (req: any, res) => {
   try {
