@@ -70,16 +70,11 @@ connectDB();
 
 // GET /health
 app.get('/health', (_req, res) => {
-  const smtpUser = process.env.SMTP_USER;
-  const resendKey = process.env.RESEND_API_KEY;
-  const emailFrom = process.env.EMAIL_FROM;
   res.json({
     status: 'ok',
     db: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
-    emailProvider: smtpUser ? 'gmail-smtp' : resendKey ? 'resend' : 'console',
-    emailFrom: emailFrom || 'not set',
-    hasResendKey: !!resendKey,
-    hasSmtpUser: !!smtpUser,
+    emailProvider: process.env.BREVO_API_KEY ? 'brevo' : 'console',
+    emailFrom: process.env.EMAIL_FROM || 'not set',
   });
 });
 app.get('/', (_req, res) => res.json({ status: 'SmashLive API running' }));
