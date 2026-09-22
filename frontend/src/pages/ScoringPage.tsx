@@ -112,8 +112,12 @@ const ScoringPage = () => {
       // No backend — offline mode only
     });
     return () => {
-      socket.emit('match:leave', matchId);
-      socket.disconnect();
+      // Use ref — safe even if socket promise hasn't resolved yet
+      if (socketRef.current) {
+        socketRef.current.emit('match:leave', matchId);
+        socketRef.current.disconnect();
+        socketRef.current = null;
+      }
     };
   }, [matchId, navigate]);
 
