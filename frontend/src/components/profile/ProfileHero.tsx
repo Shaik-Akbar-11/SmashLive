@@ -8,14 +8,20 @@ import { AuthService } from '@/services/auth.service';
 
 interface ProfileHeroProps {
   profile: {
+    _id?: string;
     name: string;
     country: string;
     state: string;
     image?: string;
+    avatar?: string;
     smash_id?: string;
     smashId?: string;
     rank?: string | number;
     points?: number;
+    matchesPlayed?: number;
+    matchesWon?: number;
+    rankingPoints?: number;
+    winRate?: string;
   };
   isOwnProfile?: boolean;
 }
@@ -72,7 +78,19 @@ const ProfileHero = ({ profile, isOwnProfile }: ProfileHeroProps) => {
       </div>
 
       <div className="flex gap-2">
-        <Button onClick={() => { navigator.clipboard.writeText(window.location.href); showSuccess("Copied!"); }} variant="outline" className="flex-1 h-9 rounded-lg border-slate-100 text-[11px] font-black uppercase"><Share2 className="mr-2 h-3.5 w-3.5" /> Share</Button>
+        <Button
+          onClick={() => {
+            // Use actual player ID for a shareable permanent link
+            const playerId = profile?._id || smashId;
+            const shareUrl = playerId
+              ? `${window.location.origin}/player/${playerId}`
+              : window.location.href;
+            navigator.clipboard.writeText(shareUrl);
+            showSuccess("Profile link copied!");
+          }}
+          variant="outline" className="flex-1 h-9 rounded-lg border-slate-100 text-[11px] font-black uppercase">
+          <Share2 className="mr-2 h-3.5 w-3.5" /> Share
+        </Button>
         {isOwnProfile && (
           <>
             <Link to="/player/edit" className="flex-1">

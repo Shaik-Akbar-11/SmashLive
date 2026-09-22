@@ -86,6 +86,9 @@ const MatchScorecard = () => {
   };
 
   const copyLink = async () => {
+    if (id?.startsWith('local_')) {
+      showSuccess('Note: This match is stored locally — link only works on this device');
+    }
     await navigator.clipboard.writeText(`${window.location.origin}/match/${id}`);
     showSuccess('Scorecard link copied!');
   };
