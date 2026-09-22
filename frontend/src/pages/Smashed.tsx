@@ -143,12 +143,22 @@ const Smashed = () => {
                       <span className="text-[9px] font-black text-slate-300 uppercase">ID: {String(item.id).slice(-6).toUpperCase()}</span>
                     </div>
                     <h2 className="text-xl font-black uppercase italic leading-tight text-[#0B1F3A]">{item.name}</h2>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2"><MapPin className="h-3 w-3 text-sky-500" /> {item.city || "Venue TBD"}</p>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2"><MapPin className="h-3 w-3 text-sky-500" /> {item.venue || item.city || item.toss?.venue || item.toss?.city || "—"}</p>
                   </div>
                   <div className="pt-5 border-t border-slate-50 flex justify-between items-center">
                      <div className="flex items-center gap-2">
                         <Zap className="h-4 w-4 text-sky-500 fill-current" />
-                        <span className="font-black text-sm text-[#0B1F3A]">{item.current_score ? `${item.current_score[0]}-${item.current_score[1]}` : "Finalized"}</span>
+                        <span className="font-black text-sm text-[#0B1F3A]">
+                          {item.type === 'match' ? (() => {
+                            // Show last game score for completed matches, current score for live
+                            const gameScores = item.game_scores || [];
+                            const setsWon = item.sets_won || [0, 0];
+                            if (item.status === 'completed' && gameScores.length > 0) {
+                              return `${setsWon[0]}-${setsWon[1]} games`;
+                            }
+                            return item.current_score ? `${item.current_score[0]}-${item.current_score[1]}` : "Scheduled";
+                          })() : (item.status || 'Active')}
+                        </span>
                      </div>
                      <Button 
                        onClick={() => navigate(item.type === 'tournament' ? `/tournament/${item.id}` : `/match/${item.id}`)} 
