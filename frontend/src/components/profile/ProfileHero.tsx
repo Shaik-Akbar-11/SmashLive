@@ -80,8 +80,8 @@ const ProfileHero = ({ profile, isOwnProfile }: ProfileHeroProps) => {
       <div className="flex gap-2">
         <Button
           onClick={() => {
-            // Use actual player ID for a shareable permanent link
-            const playerId = profile?._id || smashId;
+            // Use SmashId for a clean readable shareable link
+            const playerId = smashId || profile?._id;
             const shareUrl = playerId
               ? `${window.location.origin}/player/${playerId}`
               : window.location.href;
