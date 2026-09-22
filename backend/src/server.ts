@@ -27,7 +27,7 @@ validateConfig();
 let provider: EmailProvider;
 
 const smtpHost = process.env.SMTP_HOST || '';
-const smtpPort = parseInt(process.env.SMTP_PORT || '587');
+const smtpPort = parseInt(process.env.SMTP_PORT || '465');
 const smtpUser = process.env.SMTP_USER || '';
 const smtpPass = process.env.SMTP_PASS || '';
 const emailFrom = process.env.EMAIL_FROM || smtpUser;

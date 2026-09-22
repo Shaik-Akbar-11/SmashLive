@@ -4,10 +4,6 @@ export interface EmailProvider {
   sendOtpEmail(email: string, otp: string): Promise<void>;
 }
 
-/**
- * Brevo (Sendinblue) SMTP provider.
- * Uses smtp-relay.brevo.com:587 with TLS — works on Render.
- */
 export class SmtpEmailProvider implements EmailProvider {
   private readonly transporter: nodemailer.Transporter;
   private readonly from: string;
@@ -26,9 +22,11 @@ export class SmtpEmailProvider implements EmailProvider {
     this.transporter = nodemailer.createTransport({
       host,
       port,
-      secure: false,
+      secure: port === 465,
       auth: { user, pass },
-      tls: { rejectUnauthorized: false },
+      connectionTimeout: 15000,
+      greetingTimeout: 15000,
+      socketTimeout: 15000,
     });
   }
 
@@ -58,7 +56,7 @@ export class SmtpEmailProvider implements EmailProvider {
       <span style="font-size:22px;font-weight:900;color:#0B1F3A">Smash<span style="color:#0EA5E9">Live</span></span>
     </div>
     <h2 style="color:#0B1F3A;margin:0 0 8px 0;font-size:20px">Verify Your Identity</h2>
-    <p style="color:#555;margin:0 0 24px 0;font-size:14px">Your SmashLive verification code — expires in ${this.otpTtlMinutes} minutes.</p>
+    <p style="color:#555;margin:0 0 24px 0;font-size:14px">Your SmashLive verification code expires in ${this.otpTtlMinutes} minutes.</p>
     <div style="background:#F0F9FF;border:2px solid #0EA5E9;border-radius:12px;padding:24px;text-align:center;margin-bottom:24px">
       <p style="margin:0 0 8px 0;color:#0B1F3A;font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase">Your OTP Code</p>
       <p style="margin:0;font-size:42px;font-weight:900;letter-spacing:12px;color:#0EA5E9;font-family:monospace">${otp}</p>
