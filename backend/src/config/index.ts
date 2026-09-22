@@ -6,9 +6,5 @@ export const config = {
 };
 
 export const validateConfig = (): void => {
-  const isProd = process.env.NODE_ENV === 'production';
-  const hasSmtp = !!(process.env.SMTP_USER && process.env.SMTP_PASS);
-  if (!hasSmtp && isProd) {
-    console.warn('[Config] WARNING: SMTP_USER / SMTP_PASS not set — OTPs will only be logged to console.');
-  }
+  // Resend is the only email provider — no SMTP needed
 };
