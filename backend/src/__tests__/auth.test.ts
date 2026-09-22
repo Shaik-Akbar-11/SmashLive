@@ -91,6 +91,7 @@ UserMock.findOne  = jest.fn(async (q: any) =>
 UserMock.findById = jest.fn(async (id: string) =>
   usersStore.find(u => u._id === id) ?? null
 );
+UserMock.countDocuments = jest.fn(async () => usersStore.length);
 UserMock.prototype.save = jest.fn();
 
 jest.mock('../models/User', () => ({ User: UserMock }));
@@ -137,6 +138,7 @@ function resetStores() {
   (User.findById as jest.Mock).mockImplementation(async (id: string) =>
     usersStore.find(u => u._id === id) ?? null
   );
+  (User as any).countDocuments = jest.fn(async () => usersStore.length);
   setEmailProvider(mockProvider);
 }
 
@@ -351,7 +353,7 @@ describe('AuthService.loginOrRegister — new user', () => {
 
     expect(result.email).toBe('new@example.com');
     expect(result.role).toBe('player');
-    expect(result.smashId).toMatch(/^SMASH#\d{4}$/);
+    expect(result.smashId).toMatch(/^SMA\d{6}$/);
     expect(result.token).toBeTruthy();
   });
 
