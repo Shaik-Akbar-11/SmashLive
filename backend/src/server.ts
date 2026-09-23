@@ -21,7 +21,6 @@ import { setEmailProvider } from './services/otp.service';
 import { BrevoEmailProvider } from './services/email.provider';
 import type { EmailProvider } from './services/email.provider';
 import { startMatchReminderJob, setReminderEmailProvider } from './services/match-reminder.service';
-
 // ── Startup validation ───────────────────────────────────────────────────────
 validateConfig();
 
@@ -48,7 +47,6 @@ if (brevoApiKey) {
 
 setEmailProvider(provider);
 setReminderEmailProvider(provider);
-startMatchReminderJob();
 
 // ── Express + Socket.IO ──────────────────────────────────────────────────────
 const app = express();
@@ -74,6 +72,9 @@ app.use(cors({ origin: allowedOrigins, credentials: true }));
 app.use(express.json());
 
 connectDB();
+
+// Start match reminder job after io is created
+startMatchReminderJob(io);
 
 // GET /health
 app.get('/health', (_req, res) => {

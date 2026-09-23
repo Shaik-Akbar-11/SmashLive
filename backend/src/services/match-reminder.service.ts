@@ -7,15 +7,23 @@
 import { Match } from '../models/Match';
 import { User } from '../models/User';
 import type { EmailProvider } from './email.provider';
+import type { Server } from 'socket.io';
 
-const REMIND_BEFORE_MS = 30 * 60 * 1000;
-const CHECK_INTERVAL   = 5  * 60 * 1000;
+const REMIND_30_MS = 30 * 60 * 1000;
+const REMIND_5_MS  = 5  * 60 * 1000;
+const CHECK_INTERVAL = 2 * 60 * 1000; // check every 2 min
 
-const reminded = new Set<string>();
+const reminded30 = new Set<string>();
+const reminded5  = new Set<string>();
 let emailProvider: EmailProvider | null = null;
+let ioServer: Server | null = null;
 
 export function setReminderEmailProvider(p: EmailProvider) {
   emailProvider = p;
+}
+
+export function setReminderIo(io: Server) {
+  ioServer = io;
 }
 
 function buildReminderHtml(playerName: string, matchName: string, opponent: string, scheduledAt: Date, venue?: string): string {
@@ -60,51 +68,87 @@ async function notifyPlayer(email: string, playerName: string, matchName: string
 
 async function checkAndNotify() {
   try {
-    const now  = new Date();
-    const soon = new Date(now.getTime() + REMIND_BEFORE_MS);
-    const windowStart = new Date(soon.getTime() - CHECK_INTERVAL);
+    const now = new Date();
 
-    const upcoming = await Match.find({
-      status:      'scheduled',
-      scheduledAt: { $gte: windowStart, $lte: soon },
-    }).lean();
+    // Check for both 30-min and 5-min windows
+    const windows = [
+      { ms: REMIND_30_MS, set: reminded30, label: '30 minutes' },
+      { ms: REMIND_5_MS,  set: reminded5,  label: '5 minutes'  },
+    ];
 
-    for (const match of upcoming) {
-      const id = String(match._id);
-      if (reminded.has(id)) continue;
-      reminded.add(id);
+    for (const { ms, set, label } of windows) {
+      const windowEnd   = new Date(now.getTime() + ms);
+      const windowStart = new Date(windowEnd.getTime() - CHECK_INTERVAL);
 
-      const p = (match as any).players || {};
-      const venue = (match as any).toss?.venue || (match as any).toss?.city || '';
-      const scheduledAt = (match as any).scheduledAt as Date;
-      const matchName = (match as any).name || 'Match';
-
-      const p1 = p.p1 || {};
-      const p2 = p.p2 || {};
-      const p1Name = p1.name || 'Athlete A';
-      const p2Name = p2.name || 'Athlete B';
-
-      // Look up registered users by name to get their email
-      const users = await User.find({
-        name: { $in: [p1Name, p2Name].filter(Boolean) }
+      const upcoming = await Match.find({
+        status:      'scheduled',
+        scheduledAt: { $gte: windowStart, $lte: windowEnd },
       }).lean();
 
-      const emailByName: Record<string, string> = {};
-      users.forEach(u => { if (u.email) emailByName[u.name.toLowerCase()] = u.email; });
+      for (const match of upcoming) {
+        const key = `${match._id}_${ms}`;
+        if (set.has(key)) continue;
+        set.add(key);
 
-      const p1Email = emailByName[p1Name.toLowerCase()];
-      const p2Email = emailByName[p2Name.toLowerCase()];
+        const p = (match as any).players || {};
+        const venue = (match as any).toss?.venue || (match as any).toss?.city || '';
+        const scheduledAt = (match as any).scheduledAt as Date;
+        const matchName = (match as any).name || 'Match';
+        const matchId = String(match._id);
 
-      if (p1Email) await notifyPlayer(p1Email, p1Name, matchName, p2Name, scheduledAt, venue);
-      if (p2Email) await notifyPlayer(p2Email, p2Name, matchName, p1Name, scheduledAt, venue);
+        const p1Name = p.p1?.name || p.sideA?.[0]?.name || 'Athlete A';
+        const p2Name = p.p2?.name || p.sideB?.[0]?.name || 'Athlete B';
+
+        // Find player emails
+        const users = await User.find({
+          name: { $in: [p1Name, p2Name] }
+        }).lean();
+        const emailByName: Record<string, string> = {};
+        const idByName: Record<string, string> = {};
+        users.forEach(u => {
+          if (u.email) emailByName[u.name.toLowerCase()] = u.email;
+          idByName[u.name.toLowerCase()] = String(u._id);
+        });
+
+        // In-app notification via Socket.IO to each player
+        if (ioServer) {
+          const notifPayload = {
+            type: 'match_reminder',
+            matchId,
+            matchName,
+            venue,
+            scheduledAt,
+            minutesBefore: ms / 60000,
+          };
+          // Broadcast globally — frontend filters by player name
+          ioServer.emit('match:reminder', {
+            ...notifPayload,
+            players: [p1Name, p2Name],
+            message: `🏸 "${matchName}" starts in ${label}! Get ready.`,
+          });
+        }
+
+        // Email notifications
+        const p1Email = emailByName[p1Name.toLowerCase()];
+        const p2Email = emailByName[p2Name.toLowerCase()];
+
+        // Only send email for 30min reminder, not 5min (too close)
+        if (ms === REMIND_30_MS) {
+          if (p1Email) await notifyPlayer(p1Email, p1Name, matchName, p2Name, scheduledAt, venue);
+          if (p2Email) await notifyPlayer(p2Email, p2Name, matchName, p1Name, scheduledAt, venue);
+        }
+
+        console.log(`[Reminder] ${label} alert for: ${matchName}`);
+      }
     }
   } catch (err: any) {
     console.error('[Reminder] Check failed:', err?.message);
   }
 }
 
-export function startMatchReminderJob() {
-  console.log('[Reminder] Match reminder job started');
+export function startMatchReminderJob(io?: Server) {
+  if (io) ioServer = io;
+  console.log('[Reminder] Match reminder job started (checks every 2 min)');
   checkAndNotify();
   setInterval(checkAndNotify, CHECK_INTERVAL);
 }

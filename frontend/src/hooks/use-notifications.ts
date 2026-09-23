@@ -10,6 +10,14 @@ export function useNotifications() {
   const savedProfile = JSON.parse(localStorage.getItem('userProfile') || '{}');
   const myName = (savedProfile?.name || '').toLowerCase();
 
+  // Match reminder — 30 min and 5 min before
+  useSocketEvent('match:reminder', (payload: any) => {
+    const players: string[] = (payload.players || []).map((n: string) => n.toLowerCase());
+    if (!myName || !players.some(p => p.includes(myName) || myName.includes(p))) return;
+    const mins = payload.minutesBefore || 30;
+    showSuccess(`⏰ "${payload.matchName}" starts in ${mins} minutes! Get ready.`);
+  });
+
   // New match involving me
   useSocketEvent('feed:match_created', (match: any) => {
     const str = JSON.stringify(match.players || '').toLowerCase();
