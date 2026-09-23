@@ -313,6 +313,10 @@ const CreateIndividualMatch = () => {
       court:      config.court,
       total_sets: parseInt(config.sets),
       status:     'live',
+      // Parse scheduledAt from date+time fields if provided
+      scheduledAt: config.date && config.time
+        ? new Date(`${config.date}T${config.time}`)
+        : undefined,
       toss: {
         winner:     tossWinner,
         result:     tossResult,
