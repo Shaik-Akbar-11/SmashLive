@@ -47,9 +47,11 @@ const BroadcastCenter = () => {
   useEffect(() => {
     TournamentAPI.getAll()
       .then(data => {
-        // Show tournaments created by this organiser
+        // Show tournaments created by this user (match by creatorId or legacy organizer name)
         const mine = data.filter(t =>
-          t.organizer === profile.name || t.organizer === profile.mobile
+          (t.creatorId && t.creatorId === profile._id) ||
+          t.organizer === profile.name ||
+          t.organizer === profile.mobile
         );
         setMyTourneys(mine);
       })
@@ -69,9 +71,11 @@ const BroadcastCenter = () => {
     try {
       await TournamentAPI.generateDraw(id);
       showSuccess('Draw generated!');
-      // refresh
       const data = await TournamentAPI.getAll();
-      setMyTourneys(data.filter(t => t.organizer === profile.name || t.organizer === profile.mobile));
+      setMyTourneys(data.filter(t =>
+        (t.creatorId && t.creatorId === profile._id) ||
+        t.organizer === profile.name || t.organizer === profile.mobile
+      ));
     } catch (e: any) { showError(e.message); }
   };
 
@@ -80,7 +84,10 @@ const BroadcastCenter = () => {
       await TournamentAPI.closeRegistration(id);
       showSuccess('Registration closed');
       const data = await TournamentAPI.getAll();
-      setMyTourneys(data.filter(t => t.organizer === profile.name || t.organizer === profile.mobile));
+      setMyTourneys(data.filter(t =>
+        (t.creatorId && t.creatorId === profile._id) ||
+        t.organizer === profile.name || t.organizer === profile.mobile
+      ));
     } catch (e: any) { showError(e.message); }
   };
 

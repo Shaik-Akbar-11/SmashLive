@@ -252,10 +252,11 @@ const TournamentDetail = () => {
   const hasBracket   = bracket.length > 0;
   const winnerP      = participants.find(p => String(p._id) === String(tournament.winner));
 
-  // Deadline helpers
-  const deadlinePassed = tournament.reg_deadline && new Date() > new Date(tournament.reg_deadline);
+  // Deadline helpers — treat deadline as end of that day (23:59:59 local)
+  const deadlinePassed = tournament.reg_deadline &&
+    new Date() > new Date(tournament.reg_deadline + 'T23:59:59');
   const deadlineLabel  = tournament.reg_deadline
-    ? new Date(tournament.reg_deadline).toLocaleDateString('en-IN', { dateStyle: 'medium' })
+    ? new Date(tournament.reg_deadline + 'T12:00:00').toLocaleDateString('en-IN', { dateStyle: 'medium' })
     : null;
 
   const tabs = [

@@ -156,7 +156,7 @@ export const TournamentService = {
     if (!['registration_open', 'draft'].includes(tournament.status)) {
       throw new Error('Registration is closed for this tournament');
     }
-    if (tournament.reg_deadline && new Date() > new Date(tournament.reg_deadline as string)) {
+    if (tournament.reg_deadline && new Date() > new Date(tournament.reg_deadline + 'T23:59:59')) {
       throw new Error('Registration deadline has passed');
     }
 
