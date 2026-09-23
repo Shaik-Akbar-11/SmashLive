@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useNotifications } from "@/hooks/use-notifications";
+import { startKeepAlive } from "@/hooks/use-keep-alive";
 import { AuthService } from "@/services/auth.service";
 import Index from "./pages/Index";
 import LiveMatch from "./pages/LiveMatch";
@@ -43,6 +44,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
 const AppInner = () => {
   useNotifications();
+  useEffect(() => { startKeepAlive(); }, []);
 
   // Validate session on app load — auto logout if account deleted from DB
   useEffect(() => {

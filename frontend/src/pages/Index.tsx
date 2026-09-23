@@ -142,9 +142,16 @@ const Index = () => {
                   className="app-card p-4 flex items-center justify-between gap-4 cursor-pointer active-press group"
                 >
                   <div className="flex-1 min-w-0">
-                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest truncate mb-1">
-                      {match.name || 'Friendly Match'}
-                    </p>
+                    <div className="flex items-center gap-2 mb-1">
+                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest truncate">
+                        {match.name || 'Friendly Match'}
+                      </p>
+                      {(match.toss?.city || match.toss?.venue || match.city) && (
+                        <span className="text-[8px] font-bold text-slate-300 truncate">
+                          · {match.toss?.city || match.toss?.venue || match.city}
+                        </span>
+                      )}
+                    </div>
                     <p className="font-black text-[#0B1F3A] uppercase italic text-sm truncate">{p1}</p>
                     <p className="font-black text-[#0B1F3A] uppercase italic text-sm truncate">{p2}</p>
                   </div>

@@ -209,23 +209,37 @@ const Court = () => {
           <div className="flex flex-col gap-2">
             {loading ? (
               Array.from({ length: 2 }).map((_, i) => <MatchCardSkeleton key={i} />)
-            ) : matches.length > 0 ? matches.map((match, i) => (
-              <Link to={match.status === 'completed' ? `/match/${match._id || match.id}` : (String(match._id || match.id).startsWith('local_') ? `/scoring/${match._id || match.id}` : `/broadcast/${match._id || match.id}`)} key={i} className="app-card p-3 flex items-center justify-between">
-                <div className="flex-1 min-w-0 pr-4">
-                  <p className="text-[10px] font-black text-slate-300 uppercase truncate mb-1">{match.name}</p>
-                  <div className="space-y-0.5">
-                    <p className="font-black text-sm text-[#0B1F3A] uppercase truncate">{match.players?.p1?.name || match.players?.sideA?.[0]?.name || "Side A"}</p>
-                    <p className="font-black text-sm text-[#0B1F3A] uppercase truncate">{match.players?.p2?.name || match.players?.sideB?.[0]?.name || "Side B"}</p>
+            ) : matches.length > 0 ? matches.map((match, i) => {
+              const p1 = match.players?.p1?.name || match.players?.sideA?.[0]?.name || 'Side A';
+              const p2 = match.players?.p2?.name || match.players?.sideB?.[0]?.name || 'Side B';
+              const score = match.current_score || [0, 0];
+              const location = match.toss?.city || match.toss?.venue || match.city || match.venue || '';
+              const matchId = match._id || match.id;
+              const isLocal = String(matchId).startsWith('local_');
+              const link = isLocal ? `/scoring/${matchId}` : `/broadcast/${matchId}`;
+              return (
+              <Link to={link} key={i} className="app-card p-4 space-y-2 block active-press">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="h-1.5 w-1.5 bg-red-500 rounded-full animate-pulse shrink-0" />
+                      <p className="text-[9px] font-black text-slate-400 uppercase truncate">{match.name}</p>
+                      {location && <span className="text-[8px] font-bold text-slate-300 uppercase truncate">· {location}</span>}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-black text-sm text-[#0B1F3A] uppercase truncate">{p1}</p>
+                        <p className="font-black text-sm text-[#0B1F3A] uppercase truncate">{p2}</p>
+                      </div>
+                      <div className="bg-[#0B1F3A] px-4 py-2 rounded-xl text-center shrink-0 min-w-[64px]">
+                        <p className="text-lg font-black font-mono text-sky-400 leading-none">{score[0]}-{score[1]}</p>
+                        <p className="text-[7px] font-black text-sky-600 uppercase mt-0.5">Live</p>
+                      </div>
+                    </div>
                   </div>
                 </div>
-                <div className="bg-slate-50 px-4 py-2 rounded-xl text-center min-w-[70px]">
-                  <p className="text-xl font-mono font-black text-sky-600 leading-none">
-                    {match.current_score ? `${match.current_score[0]}-${match.current_score[1]}` : "0-0"}
-                  </p>
-                  <p className="text-[8px] font-black text-slate-300 uppercase mt-1">Live</p>
-                </div>
               </Link>
-            )) : (
+            )}) : (
               <div className="py-8 text-center bg-white/50 border border-dashed rounded-xl border-slate-200">
                 <p className="text-[11px] font-black text-slate-400 uppercase italic">No active matches in network</p>
               </div>
