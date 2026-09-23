@@ -375,9 +375,24 @@ const ScoringPage = () => {
 
         {/* Start button */}
         {!isLive && !isDone && (
-          <Button onClick={handleStart} className="w-full h-16 rounded-2xl bg-sky-500 text-white font-black text-lg uppercase">
-            Start Match
-          </Button>
+          <div className="space-y-3">
+            {matchData?.scheduledAt && new Date(matchData.scheduledAt) > new Date() && (
+              <div className="bg-sky-50 border border-sky-100 rounded-2xl p-4 text-center space-y-1">
+                <p className="text-[9px] font-black text-sky-600 uppercase tracking-widest">Scheduled For</p>
+                <p className="font-black text-[#0B1F3A] text-sm">
+                  {new Date(matchData.scheduledAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}
+                </p>
+                <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">
+                  Match not eligible to start yet
+                </p>
+              </div>
+            )}
+            {(!matchData?.scheduledAt || new Date(matchData.scheduledAt) <= new Date()) && (
+              <Button onClick={handleStart} className="w-full h-16 rounded-2xl bg-sky-500 text-white font-black text-lg uppercase">
+                Start Match
+              </Button>
+            )}
+          </div>
         )}
 
         {/* Scoring buttons */}

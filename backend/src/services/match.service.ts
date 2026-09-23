@@ -63,10 +63,13 @@ export const MatchService = {
     court?: string;
     tournamentId?: string;
     total_sets?: number;
+    scheduledAt?: string | Date;
   }) {
     const matchType = data.match_type || 'singles';
     const playerErr = validatePlayers(matchType, data.players);
     if (playerErr) throw new Error(playerErr);
+
+    const scheduledAt = data.scheduledAt ? new Date(data.scheduledAt) : null;
 
     const match = new Match({
       name:       data.name || 'Match',
@@ -77,6 +80,7 @@ export const MatchService = {
       tournamentId: data.tournamentId,
       total_sets: data.total_sets || 3,
       status:     'scheduled',
+      scheduledAt,
       current_score: [0, 0],
       sets_won:   [0, 0],
       game_scores: [],
@@ -104,6 +108,11 @@ export const MatchService = {
     if (!match) throw new Error('Match not found');
     if (match.status === 'completed') throw new Error('Match is already completed');
     if (match.status === 'live') throw new Error('Match is already live');
+
+    // Enforce scheduled time — cannot start before scheduledAt
+    if (match.scheduledAt && match.scheduledAt > new Date()) {
+      throw new Error('Match is not eligible to start yet — scheduled time has not arrived');
+    }
 
     match.status = 'live';
     match.last_update = new Date();

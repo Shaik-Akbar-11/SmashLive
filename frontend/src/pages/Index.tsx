@@ -190,10 +190,10 @@ const Index = () => {
             <p className="text-[10px] font-black text-[#0B1F3A] uppercase">Players</p>
           </div>
         </Link>
-        <Link to="/rankings">
+        <Link to="/broadcast/center">
           <div className="app-card p-4 text-center active-press">
-            <Zap className="h-5 w-5 text-amber-500 mx-auto mb-2" />
-            <p className="text-[10px] font-black text-[#0B1F3A] uppercase">Rankings</p>
+            <Monitor className="h-5 w-5 text-indigo-500 mx-auto mb-2" />
+            <p className="text-[10px] font-black text-[#0B1F3A] uppercase">Broadcast</p>
           </div>
         </Link>
         <Link to="/tournaments">

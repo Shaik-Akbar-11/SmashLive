@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Navbar from '@/components/layout/Navbar';
 import SmashRating from '@/components/dashboard/SmashRating';
+import GlobalSearch from '@/components/dashboard/GlobalSearch';
 import { motion } from 'framer-motion';
 import { 
   Trophy, Zap, Activity, Loader2, 
@@ -126,7 +127,10 @@ const Court = () => {
           )}
         </section>
 
-        {/* 2. Quick Actions Grid */}
+        {/* 2. Global Search */}
+        <GlobalSearch />
+
+        {/* 3. Quick Actions Grid */}
         <div className="grid grid-cols-4 gap-2">
           {[
             { label: 'Schedule', icon: Calendar, path: '/my-circuits', color: 'text-sky-600', bg: 'bg-sky-50' },

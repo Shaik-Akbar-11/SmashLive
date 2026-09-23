@@ -4,7 +4,6 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { safeJsonParse } from "@/lib/utils";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useNotifications } from "@/hooks/use-notifications";
 import { AuthService } from "@/services/auth.service";
@@ -38,11 +37,7 @@ const queryClient = new QueryClient();
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
-  const userProfile = safeJsonParse(localStorage.getItem('userProfile'), { onboardingComplete: false });
   if (!isLoggedIn) return <Navigate to="/login" replace />;
-  if (!userProfile.onboardingComplete && window.location.pathname !== '/onboarding') {
-    return <Navigate to="/onboarding" replace />;
-  }
   return <>{children}</>;
 };
 

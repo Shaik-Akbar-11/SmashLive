@@ -246,6 +246,49 @@ const CreateIndividualMatch = () => {
     }, 1300);
   };
 
+  // ── Phase 2 → next: detect future vs now ───────────────────────────────────
+  const goPhase2 = () => {
+    if (!config.name) { showError('Match name required'); return; }
+
+    // If both date and time are set and the datetime is in the future, skip Toss
+    if (config.date && config.time) {
+      const scheduledAt = new Date(`${config.date}T${config.time}:00`);
+      if (scheduledAt > new Date()) {
+        handleScheduleMatch(scheduledAt);
+        return;
+      }
+    }
+    // Current/past time or no date → proceed to Toss
+    setPhase(2);
+  };
+
+  // ── Create a SCHEDULED match (future date) ────────────────────────────────
+  const handleScheduleMatch = async (scheduledAt: Date) => {
+    setIsCreating(true);
+    const isDoubles = matchType !== 'singles';
+    const finalPlayers = isDoubles
+      ? { sideA: [selectedPlayers.tA1, selectedPlayers.tA2], sideB: [selectedPlayers.tB1, selectedPlayers.tB2] }
+      : { p1: selectedPlayers.p1, p2: selectedPlayers.p2 };
+
+    try {
+      await MatchAPI.create({
+        name:       config.name,
+        players:    finalPlayers,
+        match_type: matchType,
+        category:   config.category === 'Competitive' ? 'competitive' : 'friendly',
+        court:      config.court,
+        total_sets: parseInt(config.sets),
+        scheduledAt: scheduledAt.toISOString(),
+      });
+      showSuccess('Match scheduled!');
+      navigate('/live-match/active', { replace: true });
+    } catch (err: any) {
+      showError(err.message || 'Could not schedule match');
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
   // ── Start match after toss ────────────────────────────────────────────────────
   const handleStartMatch = async () => {
     if (!tossResult || !tossWinner || !tossChoice) { showError('Complete the toss first'); return; }
@@ -494,9 +537,12 @@ const CreateIndividualMatch = () => {
                 <Button onClick={() => setPhase(0)} variant="outline" className="h-16 px-6 rounded-[2rem] font-black text-[10px] uppercase border-slate-200 gap-2">
                   <ChevronLeft className="h-4 w-4" /> Back
                 </Button>
-                <Button onClick={() => { if (!config.name) { showError('Match name required'); return; } setPhase(2); }}
+                <Button onClick={goPhase2}
                   className="flex-1 h-16 bg-[#0B1F3A] text-white font-black text-lg rounded-[2rem] shadow-xl hover:bg-sky-500 transition-all gap-2">
-                  Next: Toss <ChevronRight className="h-5 w-5" />
+                  {config.date && config.time && new Date(`${config.date}T${config.time}:00`) > new Date()
+                    ? <><Calendar className="h-5 w-5" /> Schedule Match</>
+                    : <>Next: Toss <ChevronRight className="h-5 w-5" /></>
+                  }
                 </Button>
               </div>
             </motion.div>

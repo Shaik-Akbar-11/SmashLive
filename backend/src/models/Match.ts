@@ -57,6 +57,9 @@ const matchSchema = new mongoose.Schema({
 
   last_update: { type: Date, default: Date.now },
 
+  // Scheduled date/time (ISO string stored as Date)
+  scheduledAt: { type: Date, default: null },
+
   // Toss
   toss: {
     winner:   { type: String },        // 'sideA' | 'sideB'

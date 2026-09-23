@@ -13,6 +13,7 @@ import matchRoutes from './routes/match.routes';
 import userRoutes from './routes/user.routes';
 import analyticsRoutes from './routes/analytics.routes';
 import entityRoutes from './routes/entity.routes';
+import searchRoutes from './routes/search.routes';
 import { notFound, errorHandler } from './middlewares/error.middleware';
 import { initMatchSockets } from './sockets/match.socket';
 import { config, validateConfig } from './config';
@@ -87,6 +88,7 @@ app.use('/api/matches',     matchRoutes);
 app.use('/api/users',       userRoutes);
 app.use('/api/analytics',   analyticsRoutes);
 app.use('/api/entities',    entityRoutes);
+app.use('/api/search',      searchRoutes);
 
 app.set('io', io);
 

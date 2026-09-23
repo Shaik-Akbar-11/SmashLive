@@ -145,3 +145,15 @@ export const AnalyticsAPI = {
   getStats: () =>
     request<{ athletes: number; tourneys: number; participants: number }>('/analytics/stats'),
 };
+
+// ── Global Search ─────────────────────────────────────────────────────────────
+
+export const SearchAPI = {
+  global: (q: string) =>
+    request<{
+      players: any[];
+      matches: any[];
+      tournaments: any[];
+      entities: any[];
+    }>(`/search?q=${encodeURIComponent(q)}`),
+};

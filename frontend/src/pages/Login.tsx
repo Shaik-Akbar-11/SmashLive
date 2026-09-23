@@ -81,7 +81,7 @@ const Login = () => {
         const profile = await AuthService.loginWithOtp(email.trim(), code);
         AuthService.setLocalSession(profile);
         showSuccess(`Welcome back, ${profile.name}!`);
-        navigate(profile.onboardingComplete ? '/dashboard' : '/onboarding', { replace: true });
+        navigate('/dashboard', { replace: true });
       }
     } catch (err: any) {
       const msg = err.message || 'Invalid or expired OTP.';
