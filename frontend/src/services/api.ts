@@ -22,7 +22,16 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
       headers: { ...headers(), ...(options.headers as Record<string, string> || {}) },
     });
     const data = await res.json();
-    if (!res.ok) throw new Error(data.message || `Request failed: ${path}`);
+    if (!res.ok) {
+      // If 401, clear stale session so user gets redirected to login
+      if (res.status === 401) {
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('isLoggedIn');
+        localStorage.removeItem('userProfile');
+        window.dispatchEvent(new Event('storage'));
+      }
+      throw new Error(data.message || `Request failed: ${path}`);
+    }
     return data as T;
   } catch (err: any) {
     if (err.name === 'AbortError') throw new Error('Request timed out');

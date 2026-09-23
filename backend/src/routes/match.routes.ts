@@ -7,9 +7,9 @@ const router = express.Router();
 // Public — read only + create
 router.get('/',    matchController.getAll);
 router.get('/:id', matchController.getById);
-router.post('/',   matchController.create);  // create is public — no auth needed
+router.post('/',   matchController.create);
 
-// Protected — scoring operations require JWT
+// Scoring — requires JWT to prevent random people changing scores
 router.post('/:id/start', protect, matchController.start);
 router.post('/:id/score', protect, matchController.scorePoint);
 router.post('/:id/undo',  protect, matchController.undoPoint);
