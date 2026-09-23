@@ -9,7 +9,14 @@ export const matchController = {
     try {
       const match = await MatchService.createMatch(req.body);
       const io = (req as any).app.get('io');
-      if (io) broadcastMatchCreated(io, match);
+      if (io) {
+        broadcastMatchCreated(io, match);
+        // If created as live, also broadcast as started
+        if (match.status === 'live') {
+          io.to(String(match._id)).emit('match:started', match);
+          io.emit('feed:match_started', match);
+        }
+      }
       res.status(201).json(match);
     } catch (err: any) {
       res.status(400).json({ message: err.message });

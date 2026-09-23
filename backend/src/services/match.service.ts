@@ -64,6 +64,8 @@ export const MatchService = {
     tournamentId?: string;
     total_sets?: number;
     scheduledAt?: string | Date;
+    toss?: any;
+    status?: string;
   }) {
     const matchType = data.match_type || 'singles';
     const playerErr = validatePlayers(matchType, data.players);
@@ -79,7 +81,8 @@ export const MatchService = {
       court:      data.court,
       tournamentId: data.tournamentId,
       total_sets: data.total_sets || 3,
-      status:     'scheduled',
+      toss:       data.toss,
+      status:     data.status || 'live',  // default to live so it appears immediately
       scheduledAt,
       current_score: [0, 0],
       sets_won:   [0, 0],

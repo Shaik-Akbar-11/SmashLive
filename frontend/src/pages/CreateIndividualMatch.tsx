@@ -312,6 +312,7 @@ const CreateIndividualMatch = () => {
       category:   config.category === 'Competitive' ? 'competitive' : 'friendly',
       court:      config.court,
       total_sets: parseInt(config.sets),
+      status:     'live',
       toss: {
         winner:     tossWinner,
         result:     tossResult,
@@ -335,7 +336,7 @@ const CreateIndividualMatch = () => {
     try {
       const created = await MatchAPI.create(matchPayload);
       const cloudId = created._id || created.id;
-      await MatchAPI.start(cloudId).catch(() => {});
+      // No need to call start separately — match is created as live
       navigateAfterDelay(cloudId);
     } catch {
       // Backend unavailable — use local match ID so scoring still works
