@@ -162,26 +162,35 @@ const TournamentDetail = () => {
     if (!id) return;
     setLoading(true);
     try {
-      const [t, ps] = await Promise.all([
-        TournamentAPI.getById(id),
-        TournamentAPI.getParticipants(id),
-      ]);
+      // Load tournament first — participants failure must not block the page
+      const t = await TournamentAPI.getById(id);
       setTournament({ ...t, id: t._id || t.id });
-      setParticipants(ps);
+
+      // Participants — non-blocking
+      TournamentAPI.getParticipants(id)
+        .then(ps => setParticipants(ps))
+        .catch(() => setParticipants([]));
 
       if (['draw_generated', 'in_progress', 'completed'].includes(t.status)) {
-        const br = await TournamentAPI.getBracket(t._id || t.id);
-        setBracket(br);
+        TournamentAPI.getBracket(t._id || t.id)
+          .then(br => setBracket(br))
+          .catch(() => setBracket([]));
       }
 
       if (t.format === 'round_robin' && ['in_progress', 'completed'].includes(t.status)) {
-        try {
-          const st = await TournamentAPI.getStandings(t._id || t.id);
-          setStandings(st);
-        } catch {}
+        TournamentAPI.getStandings(t._id || t.id)
+          .then(st => setStandings(st))
+          .catch(() => {});
       }
-    } catch {
-      showError('Failed to load tournament');
+    } catch (e: any) {
+      // Only show not-found if it's a genuine 404, not a timeout/network error
+      if (e.message?.includes('not found') || e.message?.includes('404')) {
+        setTournament(null);
+      } else {
+        // Network/timeout — keep loading state and show retry
+        showError('Could not load tournament. Check your connection.');
+        setTournament(null);
+      }
     } finally {
       setLoading(false);
     }
@@ -236,11 +245,17 @@ const TournamentDetail = () => {
   if (loading) return <div className="min-h-screen bg-slate-50 flex items-center justify-center"><Loader2 className="h-10 w-10 text-sky-500 animate-spin" /></div>;
 
   if (!tournament) return (
-    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center gap-6">
+    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center gap-4">
       <Trophy className="h-16 w-16 text-slate-200" />
-      <Button onClick={() => navigate('/tournaments')} className="bg-[#0B1F3A] text-white px-10 h-14 rounded-2xl font-black uppercase text-[10px]">
-        Back to Tournaments
-      </Button>
+      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Tournament not found</p>
+      <div className="flex gap-3">
+        <Button onClick={() => load()} className="bg-sky-500 text-white px-8 h-12 rounded-2xl font-black uppercase text-[10px]">
+          Retry
+        </Button>
+        <Button onClick={() => navigate('/tournaments')} variant="outline" className="px-8 h-12 rounded-2xl font-black uppercase text-[10px]">
+          Back to Tournaments
+        </Button>
+      </div>
     </div>
   );
 

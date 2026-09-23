@@ -14,7 +14,7 @@ const headers = (extra: Record<string, string> = {}) => ({
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const controller = new AbortController();
-  const timeout    = setTimeout(() => controller.abort(), 8000);
+  const timeout    = setTimeout(() => controller.abort(), 20000);
   try {
     const res = await fetch(`${API_URL}${path}`, {
       ...options,
