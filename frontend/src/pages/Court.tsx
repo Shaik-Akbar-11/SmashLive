@@ -5,7 +5,7 @@ import GlobalSearch from '@/components/dashboard/GlobalSearch';
 import { motion } from 'framer-motion';
 import { 
   Trophy, Zap, Activity, Loader2, 
-  ChevronRight, Calendar, Users, Flame, MessageSquare, TrendingUp
+  ChevronRight, Calendar, Users, TrendingUp
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -15,6 +15,45 @@ import { AuthService } from '@/services/auth.service';
 import { cn } from '@/lib/utils';
 import { useSocketEvent } from '@/hooks/use-socket';
 import { MatchCardSkeleton } from '@/components/ui/skeleton-cards';
+
+const RecentResults = () => {
+  const navigate = useNavigate();
+  const [results, setResults] = useState<any[]>([]);
+
+  useEffect(() => {
+    MatchAPI.getAll('completed').then(data => setResults(data.slice(0, 3))).catch(() => {});
+  }, []);
+
+  if (results.length === 0) return (
+    <div className="py-6 text-center bg-white/50 border border-dashed rounded-xl border-slate-200">
+      <p className="text-[11px] font-black text-slate-400 uppercase italic">No completed matches yet</p>
+    </div>
+  );
+
+  return (
+    <div className="flex flex-col gap-2">
+      {results.map((m, i) => {
+        const p1 = m.players?.p1?.name || m.players?.sideA?.[0]?.name || 'Side A';
+        const p2 = m.players?.p2?.name || m.players?.sideB?.[0]?.name || 'Side B';
+        const winner = m.winner === 1 ? p1 : p2;
+        const games = (m.game_scores || []).map((g: any) => `${g.scoreA}-${g.scoreB}`).join(', ');
+        return (
+          <div key={i} onClick={() => navigate(`/match/${m._id || m.id}`)}
+            className="app-card p-3 flex items-center gap-3 cursor-pointer active-press group">
+            <div className="h-9 w-9 rounded-xl bg-amber-50 flex items-center justify-center shrink-0">
+              <Trophy className="h-4 w-4 text-amber-500" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[10px] font-black text-[#0B1F3A] uppercase truncate">{p1} vs {p2}</p>
+              <p className="text-[9px] font-bold text-sky-600 uppercase">{winner} won · {games}</p>
+            </div>
+            <ChevronRight className="h-4 w-4 text-slate-200 group-hover:text-sky-500" />
+          </div>
+        );
+      })}
+    </div>
+  );
+};
 
 const Court = () => {
   const navigate = useNavigate();
@@ -214,16 +253,15 @@ const Court = () => {
           </div>
         </section>
 
-        {/* 5. Zero-State Feed */}
+        {/* 5. Recent Results */}
         <section className="space-y-3">
-          <h2 className="uppercase italic flex items-center gap-2 px-1">
-            <Users className="h-4 w-4 text-emerald-500" /> Network Activity
-          </h2>
-          <div className="app-card p-8 text-center border-dashed border-2 bg-slate-50/30">
-            <MessageSquare className="h-8 w-8 text-slate-200 mx-auto mb-3" />
-            <p className="text-[10px] font-black text-slate-400 uppercase italic">Connect with athletes to see their match updates here.</p>
-            <Button onClick={() => navigate('/social')} variant="ghost" className="mt-2 text-sky-600 font-black text-[9px] uppercase hover:bg-transparent">Find Athletes</Button>
+          <div className="flex items-center justify-between px-1">
+            <h2 className="uppercase italic flex items-center gap-2">
+              <Activity className="h-4 w-4 text-sky-500" /> Recent Results
+            </h2>
+            <Link to="/smashed" className="text-[11px] font-black text-sky-600 uppercase">View All</Link>
           </div>
+          <RecentResults />
         </section>
       </main>
     </div>
