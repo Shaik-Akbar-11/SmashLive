@@ -11,7 +11,9 @@ const requireCreator = async (req: any, res: Response, next: NextFunction) => {
   try {
     const t = await Tournament.findById(req.params.id).select('creatorId').lean();
     if (!t) return res.status(404).json({ message: 'Tournament not found' });
-    if (!t.creatorId || String(t.creatorId) !== String(req.user._id)) {
+    // If no creatorId (legacy tournament), allow any authenticated user to manage it.
+    // If creatorId is set, only the creator may proceed.
+    if (t.creatorId && String(t.creatorId) !== String(req.user._id)) {
       return res.status(403).json({ message: 'Only the tournament creator can perform this action' });
     }
     next();

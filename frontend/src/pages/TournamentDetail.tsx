@@ -246,7 +246,7 @@ const TournamentDetail = () => {
 
   const isKnockout   = tournament.format === 'knockout';
   const isRR         = tournament.format === 'round_robin';
-  const isCreator    = !!currentUserId && String(tournament.creatorId) === String(currentUserId);
+  const isCreator    = !tournament.creatorId || (!!currentUserId && String(tournament.creatorId) === String(currentUserId));
   const canClose     = isCreator && tournament.status === 'registration_open';
   const canDraw      = isCreator && ['registration_open', 'registration_closed'].includes(tournament.status);
   const hasBracket   = bracket.length > 0;
