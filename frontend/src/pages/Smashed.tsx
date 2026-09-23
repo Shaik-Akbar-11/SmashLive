@@ -143,6 +143,14 @@ const Smashed = () => {
                       <span className="text-[9px] font-black text-slate-300 uppercase">ID: {String(item.id).slice(-6).toUpperCase()}</span>
                     </div>
                     <h2 className="text-xl font-black uppercase italic leading-tight text-[#0B1F3A]">{item.name}</h2>
+                    {/* Player names for matches */}
+                    {item.type === 'match' && item.players && (
+                      <p className="text-[11px] font-black text-[#0B1F3A] uppercase">
+                        {item.players?.p1?.name || item.players?.sideA?.[0]?.name || 'Side A'}
+                        <span className="text-slate-300 mx-1.5 font-bold">vs</span>
+                        {item.players?.p2?.name || item.players?.sideB?.[0]?.name || 'Side B'}
+                      </p>
+                    )}
                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2"><MapPin className="h-3 w-3 text-sky-500" /> {item.venue || item.city || item.toss?.venue || item.toss?.city || "—"}</p>
                   </div>
                   <div className="pt-5 border-t border-slate-50 flex justify-between items-center">
