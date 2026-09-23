@@ -4,12 +4,12 @@ import { protect } from '../middlewares/auth.middleware';
 
 const router = express.Router();
 
-// Public — read only
+// Public — read only + create
 router.get('/',    matchController.getAll);
 router.get('/:id', matchController.getById);
+router.post('/',   matchController.create);  // create is public — no auth needed
 
-// Protected — write operations require JWT
-router.post('/',          protect, matchController.create);
+// Protected — scoring operations require JWT
 router.post('/:id/start', protect, matchController.start);
 router.post('/:id/score', protect, matchController.scorePoint);
 router.post('/:id/undo',  protect, matchController.undoPoint);
