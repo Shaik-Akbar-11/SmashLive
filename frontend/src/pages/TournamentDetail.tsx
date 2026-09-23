@@ -43,11 +43,12 @@ function roundLabel(round: number, totalRounds: number): string {
 
 // ── Bracket view ───────────────────────────────────────────────────────────
 const BracketView = ({
-  bracket, participants, onResult
+  bracket, participants, onResult, isCreator
 }: {
   bracket: any[];
   participants: any[];
   onResult: (matchId: string, winnerId: string) => void;
+  isCreator: boolean;
 }) => {
   const pMap: Record<string, any> = {};
   participants.forEach(p => { pMap[String(p._id)] = p; });
@@ -82,7 +83,7 @@ const BracketView = ({
                       winner === String(match.participantA) ? 'text-sky-600' : 'text-[#0B1F3A]')}>
                       {pA?.name || (isBye ? 'BYE' : 'TBD')}
                     </span>
-                    {!isDone && pA && pB && (
+                    {!isDone && pA && pB && isCreator && (
                       <button onClick={() => onResult(String(match._id), String(match.participantA))}
                         className="text-[8px] font-black bg-sky-500 text-white px-2 py-1 rounded-lg ml-2 hover:bg-sky-600 transition">
                         WIN
@@ -96,7 +97,7 @@ const BracketView = ({
                       winner === String(match.participantB) ? 'text-sky-600' : 'text-[#0B1F3A]')}>
                       {pB?.name || (isBye ? 'BYE' : 'TBD')}
                     </span>
-                    {!isDone && pA && pB && (
+                    {!isDone && pA && pB && isCreator && (
                       <button onClick={() => onResult(String(match._id), String(match.participantB))}
                         className="text-[8px] font-black bg-sky-500 text-white px-2 py-1 rounded-lg ml-2 hover:bg-sky-600 transition">
                         WIN
@@ -151,6 +152,11 @@ const TournamentDetail = () => {
   const [loading,       setLoading]       = useState(true);
   const [activeTab,     setActiveTab]     = useState<'roster'|'bracket'|'standings'>('roster');
   const [copied,        setCopied]        = useState(false);
+
+  // Current logged-in user id
+  const currentUserId = (() => {
+    try { return JSON.parse(localStorage.getItem('userProfile') || '{}')._id || ''; } catch { return ''; }
+  })();
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -240,10 +246,17 @@ const TournamentDetail = () => {
 
   const isKnockout   = tournament.format === 'knockout';
   const isRR         = tournament.format === 'round_robin';
-  const canClose     = tournament.status === 'registration_open';
-  const canDraw      = ['registration_open', 'registration_closed'].includes(tournament.status);
+  const isCreator    = !!currentUserId && String(tournament.creatorId) === String(currentUserId);
+  const canClose     = isCreator && tournament.status === 'registration_open';
+  const canDraw      = isCreator && ['registration_open', 'registration_closed'].includes(tournament.status);
   const hasBracket   = bracket.length > 0;
   const winnerP      = participants.find(p => String(p._id) === String(tournament.winner));
+
+  // Deadline helpers
+  const deadlinePassed = tournament.reg_deadline && new Date() > new Date(tournament.reg_deadline);
+  const deadlineLabel  = tournament.reg_deadline
+    ? new Date(tournament.reg_deadline).toLocaleDateString('en-IN', { dateStyle: 'medium' })
+    : null;
 
   const tabs = [
     { id: 'roster',    label: 'Roster',   show: true },
@@ -282,6 +295,12 @@ const TournamentDetail = () => {
               {tournament.city      && <span className="flex items-center gap-1.5"><MapPin     className="h-3.5 w-3.5 text-sky-500" /> {tournament.city}</span>}
               {tournament.start_date && <span className="flex items-center gap-1.5"><Calendar   className="h-3.5 w-3.5 text-sky-500" /> {tournament.start_date}</span>}
               <span className="flex items-center gap-1.5"><Users className="h-3.5 w-3.5 text-sky-500" /> {participants.length} / {tournament.max_participants}</span>
+              {deadlineLabel && (
+                <span className={cn('flex items-center gap-1.5', deadlinePassed ? 'text-red-400' : 'text-amber-500')}>
+                  <Calendar className="h-3.5 w-3.5" />
+                  Reg. Deadline: {deadlineLabel}{deadlinePassed ? ' (Closed)' : ''}
+                </span>
+              )}
             </div>
           </div>
 
@@ -375,7 +394,7 @@ const TournamentDetail = () => {
                 </div>
                 <BracketTree
                   bracket={bracket}
-                  onResult={handleResult}
+                  onResult={isCreator ? handleResult : undefined}
                 />
               </div>
             )}
@@ -425,6 +444,7 @@ const TournamentDetail = () => {
                 { label: 'Format',    val: tournament.format === 'round_robin' ? 'Round Robin' : 'Knockout' },
                 { label: 'Category',  val: tournament.category },
                 { label: 'Organizer', val: tournament.organizer || '—' },
+                { label: 'Reg. Deadline', val: deadlineLabel || '—' },
                 { label: 'Max Entry', val: tournament.max_participants },
                 { label: 'Entries',   val: participants.length },
               ].map(({ label, val }) => (

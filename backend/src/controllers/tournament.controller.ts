@@ -10,7 +10,10 @@ const err = (res: Response, e: any) => {
 export const tournamentController = {
 
   async create(req: Request, res: Response) {
-    try { ok(res, await TournamentService.createTournament(req.body), 201); }
+    try {
+      const creatorId = (req as any).user?._id;
+      ok(res, await TournamentService.createTournament({ ...req.body, creatorId }), 201);
+    }
     catch (e) { err(res, e); }
   },
 

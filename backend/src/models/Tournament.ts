@@ -24,6 +24,7 @@ const tournamentSchema = new mongoose.Schema({
   reg_deadline:  { type: String },
   max_participants: { type: Number, default: 64 },
   organizer:     { type: String },
+  creatorId:     { type: mongoose.Schema.Types.ObjectId, ref: 'User', index: true },
 
   // Singles or Doubles
   category:      { type: String, enum: ['singles', 'doubles'], default: 'singles' },

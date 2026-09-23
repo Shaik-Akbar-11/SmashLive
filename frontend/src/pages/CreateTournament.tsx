@@ -18,7 +18,7 @@ const CreateTournament = () => {
   const [copied, setCopied]       = useState(false);
   const [slug, setSlug]           = useState('');
   const [form, setForm]           = useState({
-    name: '', city: '', start_date: '', end_date: '',
+    name: '', city: '', start_date: '', end_date: '', reg_deadline: '',
     format: 'knockout', category: 'singles',
     max_participants: '16',
   });
@@ -28,6 +28,10 @@ const CreateTournament = () => {
   const handleCreate = async () => {
     if (!form.name || !form.start_date || !form.city) {
       showError('Please fill name, city, and start date.');
+      return;
+    }
+    if (!form.reg_deadline) {
+      showError('Registration deadline is required.');
       return;
     }
     setLoading(true);
@@ -41,6 +45,7 @@ const CreateTournament = () => {
         city:             form.city,
         start_date:       form.start_date,
         end_date:         form.end_date,
+        reg_deadline:     form.reg_deadline || undefined,
         format:           form.format,
         category:         form.category,
         max_participants: parseInt(form.max_participants) || 16,
@@ -129,6 +134,25 @@ const CreateTournament = () => {
                         className="h-12 pl-10 rounded-xl bg-slate-50 border-slate-100 font-bold" />
                     </div>
                   </div>
+                </div>
+
+                {/* Registration deadline */}
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] font-black uppercase text-slate-400 ml-1">
+                    Registration Deadline <span className="text-red-400">*</span>
+                  </Label>
+                  <div className="relative">
+                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-red-300" />
+                    <Input
+                      type="date"
+                      value={form.reg_deadline}
+                      onChange={e => set('reg_deadline', e.target.value)}
+                      min={new Date().toISOString().split('T')[0]}
+                      className="h-12 pl-10 rounded-xl bg-red-50 border-red-100 font-bold focus:border-red-400"
+                      required
+                    />
+                  </div>
+                  <p className="text-[9px] text-slate-400 font-bold ml-1">Athletes cannot register after this date.</p>
                 </div>
 
                 {/* Format + Category */}
