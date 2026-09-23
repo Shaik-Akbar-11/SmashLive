@@ -91,7 +91,14 @@ const Court = () => {
         TournamentAPI.getAll(),
         AnalyticsAPI.getStats(),
       ]);
-      setMatches(activeMatches.slice(0, 4));
+
+      // Merge with local matches so offline matches show too
+      const localMatches = JSON.parse(localStorage.getItem('cache_matches_live') || '[]')
+        .filter((m: any) => m.status === 'live');
+      const backendIds = new Set(activeMatches.map((m: any) => m._id || m.id));
+      const merged = [...activeMatches, ...localMatches.filter((m: any) => !backendIds.has(m.id))];
+
+      setMatches(merged.slice(0, 4));
       setTournaments(activeTourneys.slice(0, 3));
       setSiteStats(analytics);
 
@@ -203,7 +210,7 @@ const Court = () => {
             {loading ? (
               Array.from({ length: 2 }).map((_, i) => <MatchCardSkeleton key={i} />)
             ) : matches.length > 0 ? matches.map((match, i) => (
-              <Link to={`/broadcast/${match.id}`} key={i} className="app-card p-3 flex items-center justify-between">
+              <Link to={match.status === 'completed' ? `/match/${match._id || match.id}` : (String(match._id || match.id).startsWith('local_') ? `/scoring/${match._id || match.id}` : `/broadcast/${match._id || match.id}`)} key={i} className="app-card p-3 flex items-center justify-between">
                 <div className="flex-1 min-w-0 pr-4">
                   <p className="text-[10px] font-black text-slate-300 uppercase truncate mb-1">{match.name}</p>
                   <div className="space-y-0.5">
