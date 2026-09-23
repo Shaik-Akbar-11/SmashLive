@@ -8,9 +8,16 @@ const connectDB = async () => {
       serverSelectionTimeoutMS: 10000,
     });
     console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
+
+    // Drop stale matchId unique index if it exists (causes duplicate key errors)
+    try {
+      await conn.connection.collection('matches').dropIndex('matchId_1');
+      console.log('[DB] Dropped stale matchId_1 unique index');
+    } catch {
+      // Index doesn't exist — that's fine
+    }
   } catch (error) {
     console.error('❌ MongoDB connection error:', error);
-    // Don't exit — let the server run, DB-dependent routes will fail gracefully
   }
 };
 

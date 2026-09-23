@@ -8,7 +8,7 @@ const gameScoreSchema = new mongoose.Schema({
 }, { _id: false });
 
 const matchSchema = new mongoose.Schema({
-  matchId:    { type: String, unique: true, sparse: true, index: true },
+  matchId:    { type: String, index: false },  // no unique constraint - matchId is optional
   name:       { type: String },
   match_type: { type: String, enum: ['singles', 'doubles', 'mixed'], default: 'singles' },
   category:   { type: String, enum: ['friendly', 'competitive'], default: 'friendly' },
