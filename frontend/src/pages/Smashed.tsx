@@ -150,11 +150,10 @@ const Smashed = () => {
                         <Zap className="h-4 w-4 text-sky-500 fill-current" />
                         <span className="font-black text-sm text-[#0B1F3A]">
                           {item.type === 'match' ? (() => {
-                            // Show last game score for completed matches, current score for live
                             const gameScores = item.game_scores || [];
-                            const setsWon = item.sets_won || [0, 0];
                             if (item.status === 'completed' && gameScores.length > 0) {
-                              return `${setsWon[0]}-${setsWon[1]} games`;
+                              // Show all game scores e.g. "21-4, 18-21, 21-15"
+                              return gameScores.map((g: any) => `${g.scoreA}-${g.scoreB}`).join(', ');
                             }
                             return item.current_score ? `${item.current_score[0]}-${item.current_score[1]}` : "Scheduled";
                           })() : (item.status || 'Active')}
