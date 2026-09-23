@@ -20,6 +20,7 @@ import { config, validateConfig } from './config';
 import { setEmailProvider } from './services/otp.service';
 import { BrevoEmailProvider } from './services/email.provider';
 import type { EmailProvider } from './services/email.provider';
+import { startMatchReminderJob, setReminderEmailProvider } from './services/match-reminder.service';
 
 // ── Startup validation ───────────────────────────────────────────────────────
 validateConfig();
@@ -38,11 +39,16 @@ if (brevoApiKey) {
     async sendOtpEmail(email: string, otp: string) {
       console.log(`[DEV] OTP for ${email}: ${otp}`);
     },
+    async sendEmail(email: string, subject: string, _html: string) {
+      console.log(`[DEV] Email to ${email}: ${subject}`);
+    },
   };
   console.warn('[Email] No BREVO_API_KEY — OTPs logged to console only.');
 }
 
 setEmailProvider(provider);
+setReminderEmailProvider(provider);
+startMatchReminderJob();
 
 // ── Express + Socket.IO ──────────────────────────────────────────────────────
 const app = express();

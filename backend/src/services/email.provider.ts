@@ -1,5 +1,6 @@
 export interface EmailProvider {
   sendOtpEmail(email: string, otp: string): Promise<void>;
+  sendEmail(to: string, subject: string, html: string): Promise<void>;
 }
 
 /**
@@ -21,6 +22,11 @@ export class BrevoEmailProvider implements EmailProvider {
   }
 
   async sendOtpEmail(email: string, otp: string): Promise<void> {
+    await this.sendEmail(email, 'Your SmashLive Verification Code', this.buildHtml(otp));
+    console.log(`[Email] OTP sent to ${email} via Brevo`);
+  }
+
+  async sendEmail(email: string, subject: string, html: string): Promise<void> {
     const res = await fetch('https://api.brevo.com/v3/smtp/email', {
       method: 'POST',
       headers: {
@@ -31,19 +37,16 @@ export class BrevoEmailProvider implements EmailProvider {
       body: JSON.stringify({
         sender: { name: this.fromName, email: this.from },
         to: [{ email }],
-        subject: 'Your SmashLive Verification Code',
-        htmlContent: this.buildHtml(otp),
-        textContent: this.buildText(otp),
+        subject,
+        htmlContent: html,
       }),
     });
 
     if (!res.ok) {
       const body = await res.text().catch(() => '(unreadable)');
       console.error(`[Email] Brevo error ${res.status}: ${body}`);
-      throw new Error('Unable to send OTP. Please try again.');
+      throw new Error('Unable to send email. Please try again.');
     }
-
-    console.log(`[Email] OTP sent to ${email} via Brevo`);
   }
 
   private buildHtml(otp: string): string {
