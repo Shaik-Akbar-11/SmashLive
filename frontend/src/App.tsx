@@ -44,7 +44,16 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
 const AppInner = () => {
   useNotifications();
-  useEffect(() => { startKeepAlive(); }, []);
+  useEffect(() => {
+    startKeepAlive();
+    // Clean up stale local match cache (older than 24h)
+    const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
+    const cached = JSON.parse(localStorage.getItem('cache_matches_live') || '[]');
+    const fresh = cached.filter((m: any) =>
+      new Date(m.createdAt || 0).getTime() > oneDayAgo && m.status === 'live' && !m.winner
+    );
+    localStorage.setItem('cache_matches_live', JSON.stringify(fresh));
+  }, []);
 
   // Validate session on app load — auto logout if account deleted from DB
   useEffect(() => {

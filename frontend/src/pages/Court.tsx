@@ -92,9 +92,15 @@ const Court = () => {
         AnalyticsAPI.getStats(),
       ]);
 
-      // Merge with local matches — only truly live ones
+      // Merge with local matches — only truly live ones created in last 24h
+      const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
       const localMatches = JSON.parse(localStorage.getItem('cache_matches_live') || '[]')
-        .filter((m: any) => m.status === 'live' && !m.winner && !m.matchCompleted);
+        .filter((m: any) =>
+          m.status === 'live' &&
+          !m.winner &&
+          !m.matchCompleted &&
+          new Date(m.createdAt || 0).getTime() > oneDayAgo
+        );
       const backendIds = new Set(activeMatches.map((m: any) => m._id || m.id));
       const merged = [...activeMatches, ...localMatches.filter((m: any) => !backendIds.has(m.id))];
 
@@ -124,7 +130,15 @@ const Court = () => {
     ));
   });
   useSocketEvent('feed:match_created', () => { fetchData(); });
-  useSocketEvent('feed:match_completed', () => { fetchData(); });
+  // Remove from live cache when match completes
+  useSocketEvent('feed:match_completed', (match: any) => {
+    const id = match._id || match.id;
+    const cached = JSON.parse(localStorage.getItem('cache_matches_live') || '[]');
+    localStorage.setItem('cache_matches_live', JSON.stringify(
+      cached.filter((m: any) => m.id !== id && m._id !== id)
+    ));
+    fetchData();
+  });
 
   return (
     <div className="min-h-screen bg-slate-50 pb-32">
