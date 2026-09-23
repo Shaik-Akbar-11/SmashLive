@@ -92,9 +92,9 @@ const Court = () => {
         AnalyticsAPI.getStats(),
       ]);
 
-      // Merge with local matches so offline matches show too
+      // Merge with local matches — only truly live ones
       const localMatches = JSON.parse(localStorage.getItem('cache_matches_live') || '[]')
-        .filter((m: any) => m.status === 'live');
+        .filter((m: any) => m.status === 'live' && !m.winner && !m.matchCompleted);
       const backendIds = new Set(activeMatches.map((m: any) => m._id || m.id));
       const merged = [...activeMatches, ...localMatches.filter((m: any) => !backendIds.has(m.id))];
 
