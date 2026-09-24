@@ -191,11 +191,25 @@ const TournamentDetail = () => {
       const msg = e.message?.toLowerCase() || '';
       if (msg.includes('not found') || msg.includes('404')) {
         setNotFound(true);
-      } else {
-        // Network/timeout — show retry option
-        setLoadError(true);
+        setLoading(false);
       }
-      setLoading(false);
+      // On network/timeout: keep spinner, auto-retry once after 3s
+      else {
+        setTimeout(() => {
+          TournamentAPI.getById(id!).then(t => {
+            setTournament({ ...t, id: t._id || t.id });
+            setLoading(false);
+            TournamentAPI.getParticipants(id!).then(setParticipants).catch(() => {});
+            if (['draw_generated', 'in_progress', 'completed'].includes(t.status)) {
+              TournamentAPI.getBracket(t._id || t.id).then(setBracket).catch(() => {});
+            }
+          }).catch(() => {
+            // Still failing — now show the back screen
+            setLoadError(true);
+            setLoading(false);
+          });
+        }, 3000);
+      }
     }
   }, [id]);
 
