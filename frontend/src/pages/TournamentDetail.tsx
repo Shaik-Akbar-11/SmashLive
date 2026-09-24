@@ -150,6 +150,7 @@ const TournamentDetail = () => {
   const [bracket,       setBracket]       = useState<any[]>([]);
   const [standings,     setStandings]     = useState<any[]>([]);
   const [loading,       setLoading]       = useState(true);
+  const [notFound,      setNotFound]      = useState(false);
   const [activeTab,     setActiveTab]     = useState<'roster'|'bracket'|'standings'>('roster');
   const [copied,        setCopied]        = useState(false);
 
@@ -183,14 +184,11 @@ const TournamentDetail = () => {
           .catch(() => {});
       }
     } catch (e: any) {
-      // Only show not-found if it's a genuine 404, not a timeout/network error
+      // Only show not-found on a genuine 404 — not on timeout/network errors
       if (e.message?.includes('not found') || e.message?.includes('404')) {
-        setTournament(null);
-      } else {
-        // Network/timeout — keep loading state and show retry
-        showError('Could not load tournament. Check your connection.');
-        setTournament(null);
+        setNotFound(true);
       }
+      // On network error: loading ends, tournament stays null → spinner shown was enough
     } finally {
       setLoading(false);
     }
@@ -244,7 +242,7 @@ const TournamentDetail = () => {
 
   if (loading) return <div className="min-h-screen bg-slate-50 flex items-center justify-center"><Loader2 className="h-10 w-10 text-sky-500 animate-spin" /></div>;
 
-  if (!tournament) return (
+  if (notFound || !tournament) return (
     <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center gap-4">
       <Trophy className="h-16 w-16 text-slate-200" />
       <Button onClick={() => navigate('/tournaments')} className="bg-[#0B1F3A] text-white px-10 h-14 rounded-2xl font-black uppercase text-[10px]">
