@@ -161,54 +161,36 @@ const TournamentDetail = () => {
     try { return JSON.parse(localStorage.getItem('userProfile') || '{}')._id || ''; } catch { return ''; }
   })();
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (attempt = 0) => {
     if (!id) return;
-    setLoading(true);
-    setNotFound(false);
-    setLoadError(false);
+    if (attempt === 0) { setLoading(true); setNotFound(false); }
     try {
       const t = await TournamentAPI.getById(id);
       setTournament({ ...t, id: t._id || t.id });
       setLoading(false);
 
-      // Non-blocking secondary loads
-      TournamentAPI.getParticipants(id)
-        .then(ps => setParticipants(ps))
-        .catch(() => setParticipants([]));
-
+      TournamentAPI.getParticipants(id).then(setParticipants).catch(() => {});
       if (['draw_generated', 'in_progress', 'completed'].includes(t.status)) {
-        TournamentAPI.getBracket(t._id || t.id)
-          .then(br => setBracket(br))
-          .catch(() => setBracket([]));
+        TournamentAPI.getBracket(t._id || t.id).then(setBracket).catch(() => {});
       }
-
       if (t.format === 'round_robin' && ['in_progress', 'completed'].includes(t.status)) {
-        TournamentAPI.getStandings(t._id || t.id)
-          .then(st => setStandings(st))
-          .catch(() => {});
+        TournamentAPI.getStandings(t._id || t.id).then(setStandings).catch(() => {});
       }
     } catch (e: any) {
       const msg = e.message?.toLowerCase() || '';
       if (msg.includes('not found') || msg.includes('404')) {
+        // Genuine 404 — stop and show not-found
         setNotFound(true);
         setLoading(false);
-      }
-      // On network/timeout: keep spinner, auto-retry once after 3s
-      else {
-        setTimeout(() => {
-          TournamentAPI.getById(id!).then(t => {
-            setTournament({ ...t, id: t._id || t.id });
-            setLoading(false);
-            TournamentAPI.getParticipants(id!).then(setParticipants).catch(() => {});
-            if (['draw_generated', 'in_progress', 'completed'].includes(t.status)) {
-              TournamentAPI.getBracket(t._id || t.id).then(setBracket).catch(() => {});
-            }
-          }).catch(() => {
-            // Still failing — now show the back screen
-            setLoadError(true);
-            setLoading(false);
-          });
-        }, 3000);
+      } else {
+        // Network/timeout — retry with backoff (max 5 retries, then give up)
+        const delay = Math.min(3000 * (attempt + 1), 15000);
+        if (attempt < 5) {
+          setTimeout(() => load(attempt + 1), delay);
+        } else {
+          // Exhausted retries — stay on spinner so user doesn't see blank screen
+          // They can navigate back using browser back button
+        }
       }
     }
   }, [id]);
@@ -275,20 +257,9 @@ const TournamentDetail = () => {
     } catch { showError('Download failed'); }
   };
 
-  if (loading) return <div className="min-h-screen bg-slate-50 flex items-center justify-center"><Loader2 className="h-10 w-10 text-sky-500 animate-spin" /></div>;
+  if (loading || !tournament) return <div className="min-h-screen bg-slate-50 flex items-center justify-center"><Loader2 className="h-10 w-10 text-sky-500 animate-spin" /></div>;
 
-  if (loadError && !tournament) return (
-    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center gap-4">
-      <RefreshCw className="h-12 w-12 text-slate-300" />
-      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Could not connect. Check your connection.</p>
-      <div className="flex gap-3">
-        <Button onClick={() => load()} className="bg-sky-500 text-white px-8 h-12 rounded-2xl font-black uppercase text-[10px]">Retry</Button>
-        <Button onClick={() => navigate('/tournaments')} variant="outline" className="px-8 h-12 rounded-2xl font-black uppercase text-[10px]">Back to Tournaments</Button>
-      </div>
-    </div>
-  );
-
-  if (notFound || !tournament) return (
+  if (notFound) return (
     <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center gap-4">
       <Trophy className="h-16 w-16 text-slate-200" />
       <Button onClick={() => navigate('/tournaments')} className="bg-[#0B1F3A] text-white px-10 h-14 rounded-2xl font-black uppercase text-[10px]">
