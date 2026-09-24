@@ -11,8 +11,10 @@ export const matchOwner = async (req: any, res: Response, next: NextFunction) =>
     const match = await Match.findById(req.params.id).lean();
     if (!match) return res.status(404).json({ message: 'Match not found' });
 
-    // If match has no createdBy (legacy), allow any logged-in user
-    if (!(match as any).createdBy) return next();
+    // If match has no createdBy, deny access (all new matches must have a creator)
+    if (!(match as any).createdBy) {
+      return res.status(403).json({ message: 'Only the match creator can perform this action' });
+    }
 
     if (String((match as any).createdBy) !== String(req.user._id)) {
       return res.status(403).json({ message: 'Only the match creator can perform this action' });
@@ -31,7 +33,10 @@ export const tournamentOwner = async (req: any, res: Response, next: NextFunctio
     const tournament = await Tournament.findById(req.params.id).lean();
     if (!tournament) return res.status(404).json({ message: 'Tournament not found' });
 
-    if (!(tournament as any).createdBy) return next();
+    // If no createdBy, deny access
+    if (!(tournament as any).createdBy) {
+      return res.status(403).json({ message: 'Only the tournament creator can perform this action' });
+    }
 
     if (String((tournament as any).createdBy) !== String(req.user._id)) {
       return res.status(403).json({ message: 'Only the tournament creator can perform this action' });
