@@ -4,7 +4,7 @@ import { User } from '../models/User';
 // Points awarded per match result
 const POINTS = {
   win:  10,
-  loss: 0,
+  loss: 2,  // participation points for losing
 };
 
 /**
@@ -31,7 +31,7 @@ function extractPlayers(match: any): { sideA: string[]; sideB: string[] } {
 export async function updateRankingsForMatch(matchId: string): Promise<void> {
   const match = await Match.findById(matchId).lean();
   if (!match || match.status !== 'completed' || !match.winner) return;
-  if ((match as any).category !== 'competitive') return; // only competitive matches affect rankings
+  // All matches now affect rankings (friendly + competitive)
 
   const { sideA, sideB } = extractPlayers(match);
   const winnerSide = match.winner === 1 ? sideA : sideB;
@@ -80,7 +80,6 @@ export async function recalculateAllRankings(): Promise<void> {
   // Process all completed competitive matches oldest-first
   const matches = await Match.find({
     status: 'completed',
-    category: 'competitive',
     winner: { $exists: true, $ne: null },
   }).sort({ updatedAt: 1 }).lean();
 
@@ -100,7 +99,7 @@ export async function getRankings(scope: 'world' | 'state', state?: string, dist
 
   const users = await User.find(filter)
     .select('name smashId state district gender rankingPoints matchesPlayed matchesWon matchesLost currentStreak lastMatchAt email mobile')
-    .sort({ rankingPoints: -1, matchesWon: -1 })
+    .sort({ rankingPoints: -1, matchesWon: -1, matchesPlayed: -1 })
     .lean();
 
   // Get all completed matches to compute real W/L for each user
