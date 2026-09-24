@@ -26,7 +26,11 @@ const Social = () => {
 
       try {
         const data = await UserAPI.getAll();
-        const filtered = data.filter((p: any) => p.mobile !== profile.mobile);
+        // Filter out current user by email or _id
+        const filtered = data.filter((p: any) =>
+          p._id !== profile._id &&
+          p.email !== profile.email
+        );
         setAthletes(filtered);
       } catch (e) {
         const local = JSON.parse(localStorage.getItem('registered_users') || '[]');
@@ -76,8 +80,7 @@ const Social = () => {
             <div className="py-20 flex justify-center"><Loader2 className="animate-spin text-sky-500 h-8 w-8" /></div>
           ) : (
             <AnimatePresence mode="popLayout">
-              {displayList.length > 0 ? displayList.map((p, idx) => (
-                <motion.div 
+              {displayList.length > 0 ? displayList.map((p, idx) => (                <motion.div 
                   layout
                   key={p.id || idx}
                   initial={{ opacity: 0, scale: 0.95 }}
@@ -112,7 +115,7 @@ const Social = () => {
               )) : (
                 <div className="py-24 text-center border-2 border-dashed rounded-[2.5rem] bg-white border-slate-200">
                   <Users className="h-10 w-10 text-slate-200 mx-auto mb-4" />
-                  <p className="text-[10px] font-black text-slate-400 uppercase italic">No connections found in this scope</p>
+                  <p className="text-[10px] font-black text-slate-400 uppercase italic">No athletes registered yet</p>
                 </div>
               )}
             </AnimatePresence>
