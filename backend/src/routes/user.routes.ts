@@ -115,6 +115,73 @@ router.get('/h2h', async (req: Request, res: Response) => {
   }
 });
 
+// POST /api/users/:id/follow — toggle follow/unfollow
+router.post('/:id/follow', async (req: any, res: Response) => {
+  try {
+    const targetId = req.params.id;
+    const auth = req.headers.authorization;
+    if (!auth?.startsWith('Bearer ')) return res.status(401).json({ message: 'Login required to follow' });
+
+    const jwt = await import('jsonwebtoken');
+    const { config } = await import('../config');
+    const decoded: any = jwt.default.verify(auth.split(' ')[1], config.jwtSecret);
+    const myId = decoded.id;
+
+    if (String(myId) === String(targetId)) {
+      return res.status(400).json({ message: 'Cannot follow yourself' });
+    }
+
+    const [me, target] = await Promise.all([
+      User.findById(myId),
+      User.findById(targetId),
+    ]);
+
+    if (!me || !target) return res.status(404).json({ message: 'User not found' });
+
+    const alreadyFollowing = (me.following || []).some(id => String(id) === String(targetId));
+
+    if (alreadyFollowing) {
+      await User.findByIdAndUpdate(myId, { $pull: { following: target._id } });
+      await User.findByIdAndUpdate(targetId, { $pull: { followers: me._id } });
+      const updated = await User.findById(targetId).lean();
+      return res.json({ following: false, followersCount: (updated as any)?.followers?.length ?? 0 });
+    } else {
+      await User.findByIdAndUpdate(myId, { $addToSet: { following: target._id } });
+      await User.findByIdAndUpdate(targetId, { $addToSet: { followers: me._id } });
+      const updated = await User.findById(targetId).lean();
+      return res.json({ following: true, followersCount: (updated as any)?.followers?.length ?? 0 });
+    }
+  } catch (err: any) {
+    res.status(400).json({ message: err.message });
+  }
+});
+
+// GET /api/users/:id/followers
+router.get('/:id/followers', async (req: Request, res: Response) => {
+  try {
+    const user = await User.findById(req.params.id)
+      .populate('followers', 'name smashId state avatar')
+      .lean();
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    res.json((user as any).followers || []);
+  } catch (err: any) {
+    res.status(400).json({ message: err.message });
+  }
+});
+
+// GET /api/users/:id/following
+router.get('/:id/following', async (req: Request, res: Response) => {
+  try {
+    const user = await User.findById(req.params.id)
+      .populate('following', 'name smashId state avatar')
+      .lean();
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    res.json((user as any).following || []);
+  } catch (err: any) {
+    res.status(400).json({ message: err.message });
+  }
+});
+
 // GET /api/users/:id/stats — full profile stats + match history
 router.get('/:id/stats', async (req: Request, res: Response) => {
   try {
@@ -128,7 +195,6 @@ router.get('/:id/stats', async (req: Request, res: Response) => {
     }
     if (!user) return res.status(404).json({ message: 'User not found' });
 
-    // Fetch matches involving this user (by mobile in players field)
     const allMatches = await Match.find({ status: 'completed' }).lean();
     const mobile = user.mobile;
     const name   = user.name?.toLowerCase();
@@ -138,7 +204,6 @@ router.get('/:id/stats', async (req: Request, res: Response) => {
       return str.includes(mobile) || (name && str.includes(name));
     });
 
-    // Match history items
     const matchHistory = myMatches.slice(0, 20).map(m => {
       const p = m.players as any;
       const isSideA = JSON.stringify(p?.p1 || p?.sideA || '').toLowerCase().includes(mobile)
@@ -161,7 +226,6 @@ router.get('/:id/stats', async (req: Request, res: Response) => {
       };
     });
 
-    // Tournament participations
     const participations = await Participant.find({
       $or: [
         { phone: mobile },
@@ -169,7 +233,6 @@ router.get('/:id/stats', async (req: Request, res: Response) => {
       ],
     }).populate('tournament_id').lean();
 
-    // Smash/Net/Error counts from events
     let smashes = 0, nets = 0, errors = 0;
     myMatches.forEach(m => {
       ((m as any).events || []).forEach((e: any) => {
@@ -184,8 +247,6 @@ router.get('/:id/stats', async (req: Request, res: Response) => {
       ? Math.round((user.matchesWon / user.matchesPlayed) * 100)
       : 0;
 
-    // Compute actual counts from match history (more accurate than User model fields
-    // which only update for competitive matches via ranking service)
     const computedPlayed = myMatches.length;
     const sortedMatches = myMatches.sort((a: any, b: any) =>
       new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime()
@@ -201,7 +262,6 @@ router.get('/:id/stats', async (req: Request, res: Response) => {
       ? Math.round((computedWon / computedPlayed) * 100)
       : 0;
 
-    // Compute streak from recent match history (most recent first)
     let computedStreak = 0;
     for (const m of sortedMatches) {
       const p = m.players as any;
