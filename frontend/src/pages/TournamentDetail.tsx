@@ -162,12 +162,13 @@ const TournamentDetail = () => {
   const load = useCallback(async () => {
     if (!id) return;
     setLoading(true);
+    setNotFound(false);
     try {
-      // Load tournament first — participants failure must not block the page
       const t = await TournamentAPI.getById(id);
       setTournament({ ...t, id: t._id || t.id });
+      setLoading(false);
 
-      // Participants — non-blocking
+      // Non-blocking secondary loads
       TournamentAPI.getParticipants(id)
         .then(ps => setParticipants(ps))
         .catch(() => setParticipants([]));
@@ -184,13 +185,14 @@ const TournamentDetail = () => {
           .catch(() => {});
       }
     } catch (e: any) {
-      // Only show not-found on a genuine 404 — not on timeout/network errors
-      if (e.message?.includes('not found') || e.message?.includes('404')) {
+      // Genuine 404 → show not-found screen
+      const is404 = e.message?.toLowerCase().includes('not found') || e.message?.includes('404');
+      if (is404) {
         setNotFound(true);
+        setLoading(false);
       }
-      // On network error: loading ends, tournament stays null → spinner shown was enough
-    } finally {
-      setLoading(false);
+      // Network/timeout error → keep spinner (loading stays true)
+      // User sees spinner, not a blank/broken page
     }
   }, [id]);
 
