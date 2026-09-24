@@ -73,6 +73,14 @@ const ScoringPage = () => {
   const [activeOverlay, setActiveOverlay] = useState<1 | 2 | null>(null);
   const socketRef = useRef<any>(null);
 
+  // Check if current user is the creator
+  const myProfile = JSON.parse(localStorage.getItem('userProfile') || '{}');
+  const myId = myProfile?._id || myProfile?.id;
+  const isCreator = (match: any) => {
+    if (!match?.createdBy) return true; // legacy matches — allow
+    return String(match.createdBy) === String(myId) || String(match.createdBy?._id) === String(myId);
+  };
+
   // ── Load match ───────────────────────────────────────────────────────────
   useEffect(() => {
     if (!matchId) return;
@@ -300,6 +308,7 @@ const ScoringPage = () => {
   const isLive     = matchData?.status === 'live';
   const isDone     = matchData?.status === 'completed';
   const gameScores: any[] = matchData?.game_scores || [];
+  const canControl = isCreator(matchData) || isLocalMatch;
 
   return (
     <div className="min-h-screen w-full bg-slate-50 pb-24 flex flex-col">
@@ -373,8 +382,8 @@ const ScoringPage = () => {
           })}
         </div>
 
-        {/* Start button */}
-        {!isLive && !isDone && (
+        {/* Start button — only creator */}
+        {!isLive && !isDone && canControl && (
           <div className="space-y-3">
             {matchData?.scheduledAt && new Date(matchData.scheduledAt) > new Date() && (
               <div className="bg-sky-50 border border-sky-100 rounded-2xl p-4 text-center space-y-1">
@@ -395,8 +404,15 @@ const ScoringPage = () => {
           </div>
         )}
 
-        {/* Scoring buttons */}
-        {isLive && (
+        {/* View-only message for non-creators */}
+        {isLive && !canControl && (
+          <div className="py-4 text-center bg-slate-50 border border-dashed border-slate-200 rounded-2xl">
+            <p className="text-[10px] font-black text-slate-400 uppercase italic">👁 Watching live — only the match creator can score</p>
+          </div>
+        )}
+
+        {/* Scoring buttons — only creator */}
+        {isLive && canControl && (
           <div className="grid grid-cols-2 gap-4">
             {([1, 2] as (1 | 2)[]).map(side => (
               <div key={side} className="relative h-28">
@@ -453,13 +469,13 @@ const ScoringPage = () => {
             className="flex-1 h-14 rounded-2xl border-slate-200 font-black text-[10px] uppercase gap-2 bg-white">
             <ChevronLeft className="h-4 w-4" /> Archive
           </Button>
-          {isLive && (
+          {isLive && canControl && (
             <Button onClick={handleUndo} disabled={scoring} variant="outline"
               className="flex-1 h-14 rounded-2xl border-amber-100 text-amber-600 font-black text-[10px] uppercase gap-2 bg-white hover:bg-amber-50">
               ↩ Undo
             </Button>
           )}
-          {!isDone && (
+          {!isDone && canControl && (
             <Button onClick={handleEnd} variant="outline"
               className="flex-1 h-14 rounded-2xl border-red-100 text-red-500 font-black text-[10px] uppercase gap-2 bg-white hover:bg-red-50">
               <StopCircle className="h-4 w-4" /> End
