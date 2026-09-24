@@ -5,14 +5,16 @@ import PerformanceStats from '@/components/profile/PerformanceStats';
 import TournamentSection from '@/components/profile/TournamentSection';
 import AnalyticsSection from '@/components/profile/AnalyticsSection';
 import AchievementSection from '@/components/profile/AchievementSection';
-import { Activity, BarChart3, Trophy, Award, Loader2, Star, Flame, History } from 'lucide-react';
+import { Activity, BarChart3, Trophy, Award, Loader2, Flame, History, UserPlus, UserCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useParams, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { UserAPI } from '@/services/api';
+import { AuthService } from '@/services/auth.service';
 import { useSocketEvent } from '@/hooks/use-socket';
 import { ProfileSkeleton, StatCardSkeleton } from '@/components/ui/skeleton-cards';
+import { showSuccess, showError } from '@/utils/toast';
 
 const PlayerProfile = () => {
   const { id }       = useParams<{ id: string }>();
@@ -23,9 +25,23 @@ const PlayerProfile = () => {
   const [stats, setStats]             = useState<any>(null);
   const [matchHistory, setMatchHistory] = useState<any[]>([]);
   const [tournaments, setTournaments]   = useState<any[]>([]);
+  const [isFollowing, setIsFollowing]   = useState(false);
+  const [followersCount, setFollowersCount] = useState(0);
+  const [followLoading, setFollowLoading]   = useState(false);
+  const [currentUserId, setCurrentUserId]   = useState<string | null>(null);
 
   const savedProfile = JSON.parse(localStorage.getItem('userProfile') || 'null');
   const isMe = !id || id === 'me';
+
+  // Fetch the actual logged-in user's ID from the server to avoid stale localStorage
+  useEffect(() => {
+    AuthService.getProfile().then(p => {
+      if (p?._id) setCurrentUserId(p._id);
+      else setCurrentUserId(savedProfile?._id || savedProfile?.id || null);
+    }).catch(() => {
+      setCurrentUserId(savedProfile?._id || savedProfile?.id || null);
+    });
+  }, []);
 
   const fetchProfile = useCallback(async () => {
     setLoading(true);
@@ -44,6 +60,21 @@ const PlayerProfile = () => {
       setStats(result.stats);
       setMatchHistory(result.matchHistory || []);
       setTournaments(result.tournaments || []);
+
+      // Load follow state for other players' profiles
+      const myId = currentUserId || savedProfile?._id || savedProfile?.id;
+      if (!isMe && myId && profileId !== myId) {
+        const fc = (result.user?.followers?.length ?? 0);
+        setFollowersCount(fc);
+        try {
+          const myFollowing = await UserAPI.getFollowing(myId);
+          setIsFollowing(myFollowing.some((u: any) => String(u._id) === String(profileId)));
+        } catch {
+          // best-effort — stay false
+        }
+      } else {
+        setFollowersCount(result.user?.followers?.length ?? 0);
+      }
     } catch {
       // Fallback to basic user fetch
       try {
@@ -62,7 +93,7 @@ const PlayerProfile = () => {
     }
   }, [id, isMe]);
 
-  useEffect(() => { fetchProfile(); }, [fetchProfile]);
+  useEffect(() => { fetchProfile(); }, [fetchProfile, currentUserId]);
 
   // Re-fetch when a match involving this player completes
   useSocketEvent('feed:match_completed', (match) => {
@@ -73,6 +104,23 @@ const PlayerProfile = () => {
       fetchProfile();
     }
   });
+
+  const handleFollow = async () => {
+    const isLoggedIn = !!localStorage.getItem('authToken');
+    if (!isLoggedIn) { showError('Login to follow athletes'); return; }
+    if (!profileData?._id) return;
+    setFollowLoading(true);
+    try {
+      const res = await UserAPI.toggleFollow(profileData._id);
+      setIsFollowing(res.following);
+      setFollowersCount(res.followersCount);
+      showSuccess(res.following ? 'Following!' : 'Unfollowed');
+    } catch (err: any) {
+      showError(err.message || 'Failed');
+    } finally {
+      setFollowLoading(false);
+    }
+  };
 
   const tabs = [
     { id: 'performance', label: 'Stats',    icon: Activity },
@@ -100,7 +148,10 @@ const PlayerProfile = () => {
     </div>
   );
 
-  const isOwnProfile = isMe || profileData?.mobile === savedProfile?.mobile;
+  const myId = currentUserId || savedProfile?._id || savedProfile?.id;
+  const isOwnProfile = isMe || (
+    !!myId && !!profileData?._id && String(profileData._id) === String(myId)
+  );
   const winRate = stats?.winRate ?? (
     (profileData?.matchesPlayed > 0)
       ? `${Math.round((profileData.matchesWon / profileData.matchesPlayed) * 100)}%`
@@ -124,8 +175,24 @@ const PlayerProfile = () => {
             <History className="h-4 w-4" /> Match History
           </Button>
           {!isOwnProfile && (
-            <Button variant="outline" className="h-14 w-14 p-0 rounded-2xl bg-white border-slate-200">
-              <Star className="h-5 w-5 text-sky-500" />
+            <Button
+              onClick={handleFollow}
+              disabled={followLoading}
+              variant={isFollowing ? 'default' : 'outline'}
+              className={cn(
+                'h-14 w-14 p-0 rounded-2xl transition-all',
+                isFollowing
+                  ? 'bg-sky-500 text-white border-sky-500 hover:bg-sky-600'
+                  : 'bg-white border-slate-200 text-sky-500 hover:bg-sky-50'
+              )}
+            >
+              {followLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : isFollowing ? (
+                <UserCheck className="h-5 w-5" />
+              ) : (
+                <UserPlus className="h-5 w-5" />
+              )}
             </Button>
           )}
         </div>
@@ -146,6 +213,10 @@ const PlayerProfile = () => {
           <div className="flex-1 p-3 text-center">
             <p className="text-[10px] font-black text-slate-300 uppercase">Win Rate</p>
             <p className="text-sm font-black text-sky-600">{winRate}</p>
+          </div>
+          <div className="flex-1 p-3 text-center">
+            <p className="text-[10px] font-black text-slate-300 uppercase">Followers</p>
+            <p className="text-sm font-black text-sky-500">{followersCount}</p>
           </div>
         </div>
 
