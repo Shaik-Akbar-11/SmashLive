@@ -247,15 +247,9 @@ const TournamentDetail = () => {
   if (!tournament) return (
     <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center gap-4">
       <Trophy className="h-16 w-16 text-slate-200" />
-      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Tournament not found</p>
-      <div className="flex gap-3">
-        <Button onClick={() => load()} className="bg-sky-500 text-white px-8 h-12 rounded-2xl font-black uppercase text-[10px]">
-          Retry
-        </Button>
-        <Button onClick={() => navigate('/tournaments')} variant="outline" className="px-8 h-12 rounded-2xl font-black uppercase text-[10px]">
-          Back to Tournaments
-        </Button>
-      </div>
+      <Button onClick={() => navigate('/tournaments')} className="bg-[#0B1F3A] text-white px-10 h-14 rounded-2xl font-black uppercase text-[10px]">
+        Back to Tournaments
+      </Button>
     </div>
   );
 
