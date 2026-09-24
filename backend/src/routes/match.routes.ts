@@ -15,6 +15,17 @@ router.post('/:id/score', protect, matchController.scorePoint);
 router.post('/:id/undo',  protect, matchController.undoPoint);
 router.post('/:id/end',   protect, matchController.endMatch);
 
+// Temp admin end match
+router.post('/admin/:id/end', async (req: any, res) => {
+  try {
+    const { Match } = await import('../models/Match');
+    const m = await Match.findByIdAndUpdate(req.params.id, { status: 'completed' }, { new: true });
+    res.json({ message: 'Ended', status: m?.status });
+  } catch (err: any) {
+    res.status(400).json({ message: err.message });
+  }
+});
+
 // Delete — protected
 router.delete('/:id', protect, async (req: any, res) => {
   try {
