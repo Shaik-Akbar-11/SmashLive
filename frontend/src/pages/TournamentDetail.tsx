@@ -5,7 +5,8 @@ import { Badge } from '@/components/ui/badge';
 import {
   Trophy, Calendar, Users, MapPin,
   ChevronLeft, Activity, Globe, Loader2,
-  Copy, Check, Download, Play, Lock, Shuffle, Star
+  Copy, Check, Download, Lock, Shuffle, Star,
+  CheckCircle2, XCircle, Clock, RefreshCw
 } from 'lucide-react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { TournamentAPI } from '@/services/api';
@@ -150,11 +151,12 @@ const TournamentDetail = () => {
   const [bracket,       setBracket]       = useState<any[]>([]);
   const [standings,     setStandings]     = useState<any[]>([]);
   const [loading,       setLoading]       = useState(true);
+  const [loadError,     setLoadError]     = useState(false);
   const [notFound,      setNotFound]      = useState(false);
-  const [activeTab,     setActiveTab]     = useState<'roster'|'bracket'|'standings'>('roster');
+  const [activeTab,     setActiveTab]     = useState<'roster'|'bracket'|'standings'|'manage'>('roster');
   const [copied,        setCopied]        = useState(false);
 
-  // Current logged-in user id
+  // Current logged-in user
   const currentUserId = (() => {
     try { return JSON.parse(localStorage.getItem('userProfile') || '{}')._id || ''; } catch { return ''; }
   })();
@@ -163,6 +165,7 @@ const TournamentDetail = () => {
     if (!id) return;
     setLoading(true);
     setNotFound(false);
+    setLoadError(false);
     try {
       const t = await TournamentAPI.getById(id);
       setTournament({ ...t, id: t._id || t.id });
@@ -185,14 +188,14 @@ const TournamentDetail = () => {
           .catch(() => {});
       }
     } catch (e: any) {
-      // Genuine 404 → show not-found screen
-      const is404 = e.message?.toLowerCase().includes('not found') || e.message?.includes('404');
-      if (is404) {
+      const msg = e.message?.toLowerCase() || '';
+      if (msg.includes('not found') || msg.includes('404')) {
         setNotFound(true);
-        setLoading(false);
+      } else {
+        // Network/timeout — show retry option
+        setLoadError(true);
       }
-      // Network/timeout error → keep spinner (loading stays true)
-      // User sees spinner, not a blank/broken page
+      setLoading(false);
     }
   }, [id]);
 
@@ -226,6 +229,22 @@ const TournamentDetail = () => {
     } catch (e: any) { showError(e.message); }
   };
 
+  const handleApprove = async (participantId: string) => {
+    try {
+      await TournamentAPI.approveParticipant(tournament.id, participantId);
+      showSuccess('Participant accepted');
+      TournamentAPI.getParticipants(tournament.id).then(setParticipants).catch(() => {});
+    } catch (e: any) { showError(e.message); }
+  };
+
+  const handleReject = async (participantId: string) => {
+    try {
+      await TournamentAPI.rejectParticipant(tournament.id, participantId);
+      showSuccess('Participant rejected');
+      TournamentAPI.getParticipants(tournament.id).then(setParticipants).catch(() => {});
+    } catch (e: any) { showError(e.message); }
+  };
+
   const regLink = tournament ? `${window.location.origin}/register/${tournament.slug}` : '';
   const qrUrl   = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(regLink)}`;
 
@@ -244,6 +263,17 @@ const TournamentDetail = () => {
 
   if (loading) return <div className="min-h-screen bg-slate-50 flex items-center justify-center"><Loader2 className="h-10 w-10 text-sky-500 animate-spin" /></div>;
 
+  if (loadError && !tournament) return (
+    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center gap-4">
+      <RefreshCw className="h-12 w-12 text-slate-300" />
+      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Could not connect. Check your connection.</p>
+      <div className="flex gap-3">
+        <Button onClick={() => load()} className="bg-sky-500 text-white px-8 h-12 rounded-2xl font-black uppercase text-[10px]">Retry</Button>
+        <Button onClick={() => navigate('/tournaments')} variant="outline" className="px-8 h-12 rounded-2xl font-black uppercase text-[10px]">Back to Tournaments</Button>
+      </div>
+    </div>
+  );
+
   if (notFound || !tournament) return (
     <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center gap-4">
       <Trophy className="h-16 w-16 text-slate-200" />
@@ -253,18 +283,25 @@ const TournamentDetail = () => {
     </div>
   );
 
-  const isKnockout   = tournament.format === 'knockout';
-  const isRR         = tournament.format === 'round_robin';
-  const isCreator    = !tournament.creatorId || (!!currentUserId && String(tournament.creatorId) === String(currentUserId));
-  const canClose     = isCreator && tournament.status === 'registration_open';
-  const canDraw      = isCreator && ['registration_open', 'registration_closed'].includes(tournament.status);
-  const hasBracket   = bracket.length > 0;
-  const winnerP      = participants.find(p => String(p._id) === String(tournament.winner));
+  const isKnockout = tournament.format === 'knockout';
+  const isRR       = tournament.format === 'round_robin';
+  // Creator: must have matching creatorId OR no creatorId (legacy) AND be logged in
+  const isCreator  = !!currentUserId && (
+    !tournament.creatorId || String(tournament.creatorId) === String(currentUserId)
+  );
+  const canClose   = isCreator && tournament.status === 'registration_open';
+  const canDraw    = isCreator && ['registration_open', 'registration_closed'].includes(tournament.status);
+  const hasBracket = bracket.length > 0;
+  const winnerP    = participants.find(p => String(p._id) === String(tournament.winner));
 
-  // Deadline helpers — treat deadline as end of that day (23:59:59 local)
+  const pendingPs  = participants.filter(p => p.status === 'pending');
+  const acceptedPs = participants.filter(p => ['accepted', 'registered', 'confirmed'].includes(p.status));
+  const rejectedPs = participants.filter(p => p.status === 'rejected');
+
+  // Deadline helpers
   const deadlinePassed = tournament.reg_deadline &&
     new Date() > new Date(tournament.reg_deadline + 'T23:59:59');
-  const deadlineLabel  = tournament.reg_deadline
+  const deadlineLabel = tournament.reg_deadline
     ? new Date(tournament.reg_deadline + 'T12:00:00').toLocaleDateString('en-IN', { dateStyle: 'medium' })
     : null;
 
@@ -272,6 +309,7 @@ const TournamentDetail = () => {
     { id: 'roster',    label: 'Roster',   show: true },
     { id: 'bracket',   label: isRR ? 'Fixtures' : 'Bracket', show: hasBracket },
     { id: 'standings', label: 'Standings', show: isRR && standings.length > 0 },
+    { id: 'manage',    label: `Manage${pendingPs.length > 0 ? ` (${pendingPs.length})` : ''}`, show: isCreator },
   ].filter(t => t.show);
 
   return (
@@ -363,21 +401,17 @@ const TournamentDetail = () => {
                   <h3 className="text-sm font-black uppercase italic">Entry Roster</h3>
                   <Activity className="h-4 w-4 text-sky-500" />
                 </div>
-                {participants.length > 0 ? (
+                {acceptedPs.length > 0 ? (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {participants.map((p: any, i: number) => (
+                    {acceptedPs.map((p: any) => (
                       <div key={String(p._id)} className="p-4 rounded-2xl bg-slate-50 border border-slate-100 flex items-center gap-3">
                         <div className="h-9 w-9 rounded-full bg-[#0B1F3A] flex items-center justify-center text-sky-400 font-black text-[10px] uppercase shrink-0">
                           {p.name[0]}
                         </div>
                         <div className="overflow-hidden flex-1">
                           <p className="font-black text-[#0B1F3A] uppercase text-xs truncate">{p.name}</p>
-                          {p.partner_name && (
-                            <p className="text-[9px] font-bold text-sky-500 truncate">+ {p.partner_name}</p>
-                          )}
-                          <p className="text-[8px] font-bold text-slate-400 uppercase truncate">
-                            {p.smash_id || 'Registered'} · {p.status}
-                          </p>
+                          {p.partner_name && <p className="text-[9px] font-bold text-sky-500 truncate">+ {p.partner_name}</p>}
+                          <p className="text-[8px] font-bold text-slate-400 uppercase truncate">{p.smash_id || 'Registered'}</p>
                         </div>
                         {p.status === 'winner' && <Star className="h-4 w-4 text-yellow-500 shrink-0" />}
                         {p.status === 'eliminated' && <span className="text-[8px] font-black text-red-400 uppercase">Out</span>}
@@ -387,7 +421,7 @@ const TournamentDetail = () => {
                 ) : (
                   <div className="py-20 text-center opacity-40">
                     <Users className="h-10 w-10 mx-auto text-slate-200 mb-3" />
-                    <p className="font-black text-slate-400 uppercase text-[9px]">No entries yet</p>
+                    <p className="font-black text-slate-400 uppercase text-[9px]">No confirmed entries yet</p>
                   </div>
                 )}
               </div>
@@ -417,6 +451,86 @@ const TournamentDetail = () => {
                   <Activity className="h-4 w-4 text-sky-500" />
                 </div>
                 <StandingsView standings={standings} />
+              </div>
+            )}
+
+            {/* Manage — creator only */}
+            {activeTab === 'manage' && isCreator && (
+              <div className="space-y-6">
+                {/* Pending */}
+                <div className="bg-white rounded-[2.5rem] border border-slate-100 p-6 shadow-sm space-y-4">
+                  <div className="flex items-center gap-2 border-b border-slate-50 pb-4">
+                    <Clock className="h-4 w-4 text-amber-500" />
+                    <h3 className="text-sm font-black uppercase italic">Pending Applications</h3>
+                    {pendingPs.length > 0 && (
+                      <span className="ml-auto bg-amber-100 text-amber-700 text-[9px] font-black px-2 py-0.5 rounded-full uppercase">{pendingPs.length}</span>
+                    )}
+                  </div>
+                  {pendingPs.length > 0 ? pendingPs.map(p => (
+                    <div key={String(p._id)} className="flex items-center gap-3 p-3 rounded-2xl bg-amber-50 border border-amber-100">
+                      <div className="h-9 w-9 rounded-full bg-[#0B1F3A] flex items-center justify-center text-sky-400 font-black text-[10px] uppercase shrink-0">{p.name[0]}</div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-black text-[#0B1F3A] uppercase text-xs truncate">{p.name}</p>
+                        {p.partner_name && <p className="text-[9px] text-sky-500 truncate">+ {p.partner_name}</p>}
+                        <p className="text-[8px] text-slate-400 uppercase">{p.smash_id || '—'} · {p.state || '—'}</p>
+                      </div>
+                      <div className="flex gap-2 shrink-0">
+                        <button onClick={() => handleApprove(String(p._id))}
+                          className="h-8 px-3 bg-green-500 text-white rounded-xl text-[8px] font-black uppercase hover:bg-green-600 transition flex items-center gap-1">
+                          <CheckCircle2 className="h-3 w-3" /> Accept
+                        </button>
+                        <button onClick={() => handleReject(String(p._id))}
+                          className="h-8 px-3 bg-red-400 text-white rounded-xl text-[8px] font-black uppercase hover:bg-red-500 transition flex items-center gap-1">
+                          <XCircle className="h-3 w-3" /> Reject
+                        </button>
+                      </div>
+                    </div>
+                  )) : (
+                    <p className="text-[9px] font-black text-slate-400 uppercase italic py-4 text-center">No pending applications</p>
+                  )}
+                </div>
+
+                {/* Accepted */}
+                <div className="bg-white rounded-[2.5rem] border border-slate-100 p-6 shadow-sm space-y-4">
+                  <div className="flex items-center gap-2 border-b border-slate-50 pb-4">
+                    <CheckCircle2 className="h-4 w-4 text-green-500" />
+                    <h3 className="text-sm font-black uppercase italic">Accepted Participants</h3>
+                    <span className="ml-auto bg-green-100 text-green-700 text-[9px] font-black px-2 py-0.5 rounded-full uppercase">{acceptedPs.length}</span>
+                  </div>
+                  {acceptedPs.length > 0 ? acceptedPs.map(p => (
+                    <div key={String(p._id)} className="flex items-center gap-3 p-3 rounded-2xl bg-slate-50 border border-slate-100">
+                      <div className="h-9 w-9 rounded-full bg-green-500 flex items-center justify-center text-white font-black text-[10px] uppercase shrink-0">{p.name[0]}</div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-black text-[#0B1F3A] uppercase text-xs truncate">{p.name}</p>
+                        {p.partner_name && <p className="text-[9px] text-sky-500 truncate">+ {p.partner_name}</p>}
+                        <p className="text-[8px] text-slate-400 uppercase">{p.smash_id || '—'}</p>
+                      </div>
+                      <Star className="h-4 w-4 text-green-400 shrink-0" />
+                    </div>
+                  )) : (
+                    <p className="text-[9px] font-black text-slate-400 uppercase italic py-4 text-center">No accepted participants yet</p>
+                  )}
+                </div>
+
+                {/* Rejected */}
+                {rejectedPs.length > 0 && (
+                  <div className="bg-white rounded-[2.5rem] border border-slate-100 p-6 shadow-sm space-y-4">
+                    <div className="flex items-center gap-2 border-b border-slate-50 pb-4">
+                      <XCircle className="h-4 w-4 text-red-400" />
+                      <h3 className="text-sm font-black uppercase italic">Rejected Applications</h3>
+                    </div>
+                    {rejectedPs.map(p => (
+                      <div key={String(p._id)} className="flex items-center gap-3 p-3 rounded-2xl bg-red-50 border border-red-100 opacity-70">
+                        <div className="h-9 w-9 rounded-full bg-red-200 flex items-center justify-center text-red-500 font-black text-[10px] uppercase shrink-0">{p.name[0]}</div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-black text-slate-500 uppercase text-xs truncate">{p.name}</p>
+                          <p className="text-[8px] text-slate-400 uppercase">{p.smash_id || '—'}</p>
+                        </div>
+                        <XCircle className="h-4 w-4 text-red-300 shrink-0" />
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </div>

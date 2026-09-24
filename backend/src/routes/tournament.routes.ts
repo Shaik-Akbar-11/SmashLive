@@ -43,5 +43,7 @@ router.delete('/:id', protect, requireCreator, tournamentController.remove);
 router.post('/:id/draw',               protect, requireCreator, tournamentController.generateDraw);
 router.post('/:id/result',             protect, requireCreator, tournamentController.recordResult);
 router.post('/:id/close-registration', protect, requireCreator, tournamentController.closeRegistration);
+router.patch('/:id/participants/:participantId/approve', protect, requireCreator, tournamentController.approveParticipant);
+router.patch('/:id/participants/:participantId/reject',  protect, requireCreator, tournamentController.rejectParticipant);
 
 export default router;

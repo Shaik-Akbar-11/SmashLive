@@ -160,32 +160,55 @@ export const TournamentService = {
       throw new Error('Registration deadline has passed');
     }
 
-    const count = await Participant.countDocuments({ tournament_id: tournament._id });
-    if (tournament.max_participants && count >= tournament.max_participants) {
-      throw new Error('Tournament is full — maximum participants reached');
-    }
-
     if (tournament.category === 'doubles' && !data.partner_name) {
       throw new Error('Doubles registration requires partner name');
     }
 
-    // Duplicate check
-    if (data.phone || data.smash_id) {
-      const orClause: any[] = [];
-      if (data.phone)    orClause.push({ phone: data.phone });
-      if (data.smash_id) orClause.push({ smash_id: data.smash_id });
+    // Duplicate check — phone, smash_id, or user_id
+    const orClause: any[] = [];
+    if (data.phone)    orClause.push({ phone: data.phone });
+    if (data.smash_id) orClause.push({ smash_id: data.smash_id });
+    if (data.user_id)  orClause.push({ user_id: data.user_id });
+    if (orClause.length) {
       const dup = await Participant.findOne({ tournament_id: tournament._id, $or: orClause });
-      if (dup) throw new Error('This athlete is already registered in this tournament');
+      if (dup) throw new Error('You are already registered in this tournament');
     }
 
-    const p = new Participant({ ...data, tournament_id: tournament._id, status: 'registered' });
+    // Count only pending/accepted toward the cap (not rejected)
+    const count = await Participant.countDocuments({
+      tournament_id: tournament._id,
+      status: { $in: ['pending', 'registered', 'accepted', 'confirmed'] },
+    });
+    if (tournament.max_participants && count >= tournament.max_participants) {
+      throw new Error('Tournament is full — maximum participants reached');
+    }
+
+    const p = new Participant({ ...data, tournament_id: tournament._id, status: 'pending' });
+    return await p.save();
+  },
+
+  async approveParticipant(tournamentId: string, participantId: string) {
+    const t = await Tournament.findById(tournamentId);
+    if (!t) throw new Error('Tournament not found');
+    const p = await Participant.findOne({ _id: participantId, tournament_id: t._id });
+    if (!p) throw new Error('Participant not found');
+    p.status = 'accepted';
+    return await p.save();
+  },
+
+  async rejectParticipant(tournamentId: string, participantId: string) {
+    const t = await Tournament.findById(tournamentId);
+    if (!t) throw new Error('Tournament not found');
+    const p = await Participant.findOne({ _id: participantId, tournament_id: t._id });
+    if (!p) throw new Error('Participant not found');
+    p.status = 'rejected';
     return await p.save();
   },
 
   async getParticipants(tournamentId: string) {
     const t = await Tournament.findOne(resolveQuery(tournamentId)).lean();
     if (!t) throw new Error('Tournament not found');
-    return await Participant.find({ tournament_id: t._id }).sort({ seed: 1, createdAt: 1 }).lean();
+    return await Participant.find({ tournament_id: t._id }).sort({ status: 1, createdAt: 1 }).lean();
   },
 
   // ── Draw ───────────────────────────────────────────────────────────────────
@@ -197,8 +220,11 @@ export const TournamentService = {
       throw new Error('Draw has already been generated for this tournament');
     }
 
-    const participants = await Participant.find({ tournament_id: tournament._id }).lean();
-    if (participants.length < 2) throw new Error('Need at least 2 participants to generate a draw');
+    const participants = await Participant.find({
+      tournament_id: tournament._id,
+      status: { $in: ['accepted', 'registered', 'confirmed'] }, // accepted = approved, registered = legacy
+    }).lean();
+    if (participants.length < 2) throw new Error('Need at least 2 accepted participants to generate a draw');
 
     const shuffled = [...participants].sort(() => Math.random() - 0.5);
     const bracket  = tournament.format === 'round_robin'

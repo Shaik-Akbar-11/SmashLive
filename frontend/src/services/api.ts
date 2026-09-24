@@ -85,6 +85,12 @@ export const TournamentAPI = {
 
   closeRegistration: (id: string) =>
     request<any>(`/tournaments/${id}/close-registration`, { method: 'POST' }),
+
+  approveParticipant: (id: string, participantId: string) =>
+    request<any>(`/tournaments/${id}/participants/${participantId}/approve`, { method: 'PATCH' }),
+
+  rejectParticipant: (id: string, participantId: string) =>
+    request<any>(`/tournaments/${id}/participants/${participantId}/reject`, { method: 'PATCH' }),
 };
 
 // ── Matches ──────────────────────────────────────────────────────────────────

@@ -15,7 +15,8 @@ export interface IParticipant extends Document {
   partner_smash_id?: string;
   // Tournament state
   seed?: number;
-  status: 'registered' | 'confirmed' | 'eliminated' | 'winner';
+  status: 'pending' | 'registered' | 'accepted' | 'rejected' | 'confirmed' | 'eliminated' | 'winner';
+  user_id?: mongoose.Types.ObjectId;
 }
 
 const participantSchema = new mongoose.Schema<IParticipant>({
@@ -33,7 +34,8 @@ const participantSchema = new mongoose.Schema<IParticipant>({
   partner_smash_id:   { type: String },
   // Tournament state
   seed:   { type: Number },
-  status: { type: String, enum: ['registered', 'confirmed', 'eliminated', 'winner'], default: 'registered' },
+  status: { type: String, enum: ['pending', 'registered', 'accepted', 'rejected', 'confirmed', 'eliminated', 'winner'], default: 'pending' },
+  user_id: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
 }, { timestamps: true });
 
 export const Participant = mongoose.model<IParticipant>('Participant', participantSchema);

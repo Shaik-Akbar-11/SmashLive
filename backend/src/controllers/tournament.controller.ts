@@ -87,4 +87,16 @@ export const tournamentController = {
     try { ok(res, await TournamentService.closeRegistration(req.params.id)); }
     catch (e) { err(res, e); }
   },
+
+  // Approve participant
+  async approveParticipant(req: Request, res: Response) {
+    try { ok(res, await TournamentService.approveParticipant(req.params.id, req.params.participantId)); }
+    catch (e) { err(res, e); }
+  },
+
+  // Reject participant
+  async rejectParticipant(req: Request, res: Response) {
+    try { ok(res, await TournamentService.rejectParticipant(req.params.id, req.params.participantId)); }
+    catch (e) { err(res, e); }
+  },
 };
