@@ -7,7 +7,12 @@ export const matchController = {
 
   async create(req: Request, res: Response) {
     try {
-      const match = await MatchService.createMatch(req.body);
+      const matchData = { ...req.body };
+      // If user is logged in, store as creator
+      if ((req as any).user?._id) {
+        matchData.createdBy = (req as any).user._id;
+      }
+      const match = await MatchService.createMatch(matchData);
       const io = (req as any).app.get('io');
       if (io) {
         broadcastMatchCreated(io, match);

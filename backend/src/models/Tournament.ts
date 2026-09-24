@@ -46,6 +46,9 @@ const tournamentSchema = new mongoose.Schema({
   // Tournament winner (participant _id)
   winner: { type: mongoose.Schema.Types.ObjectId, ref: 'Participant', default: null },
 
+  // Creator — only this user can manage the tournament
+  createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+
   // Legacy compat
   winnerId: { type: mongoose.Schema.Types.ObjectId, ref: 'Player', default: null },
 }, { timestamps: true });

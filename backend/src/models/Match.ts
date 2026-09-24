@@ -57,6 +57,9 @@ const matchSchema = new mongoose.Schema({
 
   last_update: { type: Date, default: Date.now },
 
+  // Creator — only this user can score/undo/end
+  createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+
   // Scheduled date/time (ISO string stored as Date)
   scheduledAt: { type: Date, default: null },
 
