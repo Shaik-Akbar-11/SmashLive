@@ -179,19 +179,13 @@ const TournamentDetail = () => {
     } catch (e: any) {
       const msg = e.message?.toLowerCase() || '';
       if (msg.includes('not found') || msg.includes('404')) {
-        // Genuine 404 — stop and show not-found
         setNotFound(true);
         setLoading(false);
-      } else {
-        // Network/timeout — retry with backoff (max 5 retries, then give up)
-        const delay = Math.min(3000 * (attempt + 1), 15000);
-        if (attempt < 5) {
-          setTimeout(() => load(attempt + 1), delay);
-        } else {
-          // Exhausted retries — stay on spinner so user doesn't see blank screen
-          // They can navigate back using browser back button
-        }
+      } else if (attempt < 8) {
+        // Retry with short 2s delay — 8 retries × 8s timeout ≈ 80s max total
+        setTimeout(() => load(attempt + 1), 2000);
       }
+      // After 8 retries — keep spinner, user can use browser back
     }
   }, [id]);
 
