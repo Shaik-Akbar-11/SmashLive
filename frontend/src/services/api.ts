@@ -136,6 +136,10 @@ export const UserAPI = {
     request<any[]>(`/users/rankings?scope=${scope}${state ? `&state=${encodeURIComponent(state)}` : ''}${district ? `&district=${encodeURIComponent(district)}` : ''}`),
   getH2H: (aId: string, bId: string) =>
     request<any>(`/users/h2h?a=${encodeURIComponent(aId)}&b=${encodeURIComponent(bId)}`),
+  toggleFollow: (targetId: string) =>
+    request<{ following: boolean; followersCount: number }>(`/users/${targetId}/follow`, { method: 'POST' }),
+  getFollowers: (id: string) => request<any[]>(`/users/${id}/followers`),
+  getFollowing: (id: string) => request<any[]>(`/users/${id}/following`),
 };
 
 // ── Entity Autocomplete ───────────────────────────────────────────────────────
