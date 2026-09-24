@@ -86,7 +86,7 @@ const Social = () => {
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.95 }}
-                  onClick={() => navigate(`/player/${p.id || p.mobile}`)}
+                  onClick={() => navigate(`/player/${p._id || p.id || p.mobile}`)}
                   className="app-card p-4 flex items-center justify-between bg-white cursor-pointer group"
                 >
                   <div className="flex items-center gap-4">
