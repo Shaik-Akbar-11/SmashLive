@@ -134,14 +134,11 @@ const Rankings = () => {
                   {row.smashId || '—'} · {row.district ? `${row.district}, ` : ''}{row.state || 'India'}
                 </p>
                 <div className="flex items-center gap-3 mt-1">
-                  <span className="text-[8px] font-black text-green-600">{row.matchesWon}W</span>
-                  <span className="text-[8px] font-black text-red-400">{row.matchesLost}L</span>
-                  {row.matchesPlayed > 0 && <span className="text-[8px] font-black text-sky-500">{row.winRate}%</span>}
+                  <span className="text-[8px] font-black text-slate-400">{row.matchesPlayed || 0}P</span>
+                  <span className="text-[8px] font-black text-green-600">{row.matchesWon || 0}W</span>
+                  <span className="text-[8px] font-black text-red-400">{row.matchesLost || 0}L</span>
+                  {(row.matchesPlayed || 0) > 0 && <span className="text-[8px] font-black text-sky-500">{row.winRate || 0}%</span>}
                 </div>
-              </div>
-              <div className="text-right shrink-0">
-                <p className="text-lg font-black text-[#0B1F3A] leading-none">{row.rankingPoints}</p>
-                <p className="text-[8px] font-black text-slate-300 uppercase">pts</p>
               </div>
               <ChevronRight className="h-5 w-5 text-slate-200 group-hover:text-sky-500 transition-colors shrink-0" />
             </div>
