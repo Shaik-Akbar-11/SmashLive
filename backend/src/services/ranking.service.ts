@@ -94,20 +94,45 @@ export async function recalculateAllRankings(): Promise<void> {
  * Optional filter by state for state-level rankings.
  */
 export async function getRankings(scope: 'world' | 'state', state?: string, district?: string) {
-  const filter: any = {};  // Show ALL players, not just those with matches
+  const filter: any = {};
   if (scope === 'state' && state) filter.state = state;
   if (district) filter.district = district;
 
   const users = await User.find(filter)
-    .select('name smashId state district gender rankingPoints matchesPlayed matchesWon matchesLost currentStreak lastMatchAt')
+    .select('name smashId state district gender rankingPoints matchesPlayed matchesWon matchesLost currentStreak lastMatchAt email mobile')
     .sort({ rankingPoints: -1, matchesWon: -1 })
     .lean();
 
-  return users.map((u, i) => ({
-    ...u,
-    rank:    i + 1,
-    winRate: u.matchesPlayed > 0
-      ? Math.round((u.matchesWon / u.matchesPlayed) * 100)
-      : 0,
-  }));
+  // Get all completed matches to compute real W/L for each user
+  const allCompleted = await Match.find({ status: 'completed' }).lean();
+
+  return users.map((u, i) => {
+    const nameL   = (u.name || '').toLowerCase();
+    const mobile  = (u as any).mobile || '';
+
+    const myMatches = allCompleted.filter(m => {
+      const str = JSON.stringify(m.players || '').toLowerCase();
+      return (mobile && str.includes(mobile)) || (nameL && str.includes(nameL));
+    });
+
+    const won = myMatches.filter(m => {
+      const p = m.players as any;
+      const isSideA = JSON.stringify(p?.p1 || p?.sideA || '').toLowerCase().includes(nameL)
+        || (mobile && JSON.stringify(p?.p1 || p?.sideA || '').toLowerCase().includes(mobile));
+      return m.winner === (isSideA ? 1 : 2);
+    }).length;
+
+    const played = myMatches.length;
+    const lost   = played - won;
+    const winRate = played > 0 ? Math.round((won / played) * 100) : 0;
+
+    return {
+      ...u,
+      rank:          i + 1,
+      matchesPlayed: Math.max((u as any).matchesPlayed || 0, played),
+      matchesWon:    Math.max((u as any).matchesWon    || 0, won),
+      matchesLost:   Math.max((u as any).matchesLost   || 0, lost),
+      winRate,
+    };
+  });
 }
