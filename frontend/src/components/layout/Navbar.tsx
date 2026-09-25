@@ -10,7 +10,7 @@ interface Notification {
   message: string;
   time: Date;
   read: boolean;
-  type: 'match_reminder' | 'match_started' | 'match_completed' | 'score';
+  type: 'match_reminder' | 'match_started' | 'match_completed' | 'score' | 'tournament_next_match';
 }
 
 const Navbar = () => {
@@ -86,6 +86,7 @@ const Navbar = () => {
   const iconForType = (type: Notification['type']) => {
     if (type === 'match_reminder') return <Clock className="h-3.5 w-3.5 text-amber-500" />;
     if (type === 'match_completed') return <Trophy className="h-3.5 w-3.5 text-yellow-500" />;
+    if (type === 'tournament_next_match') return <Trophy className="h-3.5 w-3.5 text-sky-500" />;
     return <Zap className="h-3.5 w-3.5 text-sky-500" />;
   };
 

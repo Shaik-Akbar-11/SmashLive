@@ -12,6 +12,10 @@ const TOURNAMENT_POINTS = { winner: 50, runnerUp: 25, semiFinal: 10, quarterFina
 let _emailProvider: EmailProvider | null = null;
 export function setTournamentEmailProvider(p: EmailProvider) { _emailProvider = p; }
 
+// Socket.IO instance injected from server.ts
+let _io: any = null;
+export function setTournamentIo(io: any) { _io = io; }
+
 // ── Email: next-round match notification ──────────────────────────────────────
 async function sendNextMatchEmail(
   email: string,
@@ -98,6 +102,20 @@ async function notifyNextRoundPlayers(
 
   if (infoA.email) await sendNextMatchEmail(infoA.email, infoA.name, pB.name, label, tournament.name, venue, city, date);
   if (infoB.email) await sendNextMatchEmail(infoB.email, infoB.name, pA.name, label, tournament.name, venue, city, date);
+
+  // In-app bell notification via Socket.IO
+  if (_io) {
+    _io.emit('tournament:next_match', {
+      tournamentId: String(tournament._id),
+      tournamentName: tournament.name,
+      round: label,
+      players: [pA.name, pB.name],
+      venue,
+      city,
+      date,
+      message: `🏸 Next match ready: ${label} — ${tournament.name}`,
+    });
+  }
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────

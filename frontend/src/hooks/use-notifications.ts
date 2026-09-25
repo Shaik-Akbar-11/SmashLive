@@ -54,4 +54,17 @@ export function useNotifications() {
       dispatch('Match finished! Check the scorecard.', 'match_completed');
     }
   });
+
+  // Tournament next-round match ready
+  useSocketEvent('tournament:next_match', (payload: any) => {
+    const players: string[] = (payload.players || []).map((n: string) => n.toLowerCase());
+    if (!myName || !players.some(p => p.includes(myName) || myName.includes(p))) return;
+    const opponent = players.find(p => !p.includes(myName) && !myName.includes(p)) || 'your opponent';
+    const location = payload.venue || payload.city ? ` · ${payload.venue || payload.city}` : '';
+    const date = payload.date ? ` · ${payload.date}` : '';
+    dispatch(
+      `🏸 Next match: ${payload.round} vs ${opponent}${location}${date} — ${payload.tournamentName}`,
+      'tournament_next_match'
+    );
+  });
 }
