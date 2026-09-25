@@ -3,9 +3,102 @@ import { Tournament } from '../models/Tournament';
 import { Participant } from '../models/Participant';
 import { Match } from '../models/Match';
 import { User } from '../models/User';
+import type { EmailProvider } from './email.provider';
 
 // Ranking points for tournament results
 const TOURNAMENT_POINTS = { winner: 50, runnerUp: 25, semiFinal: 10, quarterFinal: 5 };
+
+// Email provider injected from server.ts
+let _emailProvider: EmailProvider | null = null;
+export function setTournamentEmailProvider(p: EmailProvider) { _emailProvider = p; }
+
+// ── Email: next-round match notification ──────────────────────────────────────
+async function sendNextMatchEmail(
+  email: string,
+  playerName: string,
+  opponentName: string,
+  roundLabel: string,
+  tournamentName: string,
+  venue?: string,
+  city?: string,
+  date?: string,
+) {
+  if (!_emailProvider || !email) return;
+  const html = `<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"></head>
+<body style="font-family:Arial,sans-serif;background:#f4f4f4;padding:32px;margin:0">
+  <div style="max-width:480px;margin:0 auto;background:#fff;border-radius:12px;padding:32px;border-top:4px solid #0EA5E9">
+    <div style="margin-bottom:20px">
+      <span style="font-size:22px;font-weight:900;color:#0B1F3A">Smash<span style="color:#0EA5E9">Live</span></span>
+    </div>
+    <h2 style="color:#0B1F3A;margin:0 0 8px 0;font-size:20px">🏸 Your Next Match is Ready!</h2>
+    <p style="color:#555;margin:0 0 20px 0;font-size:14px">Hey <strong>${playerName}</strong>, you've advanced to the next round!</p>
+    <div style="background:#F0F9FF;border:2px solid #0EA5E9;border-radius:12px;padding:20px;margin-bottom:20px">
+      <p style="margin:0 0 6px 0;font-size:12px;color:#0B1F3A;font-weight:700;text-transform:uppercase">Match Details</p>
+      <p style="margin:4px 0;font-size:16px;font-weight:900;color:#0B1F3A">${tournamentName}</p>
+      <p style="margin:4px 0;font-size:13px;color:#555">Round: <strong>${roundLabel}</strong></p>
+      <p style="margin:4px 0;font-size:13px;color:#555">vs <strong>${opponentName}</strong></p>
+      ${date ? `<p style="margin:8px 0 4px 0;font-size:12px;color:#0EA5E9;font-weight:700">📅 ${date}</p>` : ''}
+      ${venue ? `<p style="margin:4px 0;font-size:12px;color:#777">📍 ${venue}${city ? `, ${city}` : ''}</p>` : (city ? `<p style="margin:4px 0;font-size:12px;color:#777">📍 ${city}</p>` : '')}
+    </div>
+    <p style="color:#aaa;font-size:12px;margin:0">Stay focused and play your best! Good luck 🏆</p>
+    <hr style="border:none;border-top:1px solid #eee;margin:20px 0">
+    <p style="color:#aaa;font-size:11px;margin:0;text-align:center">© SmashLive — The Badminton Network</p>
+  </div>
+</body>
+</html>`;
+  try {
+    await _emailProvider.sendEmail(email, `🏸 Next Match: ${roundLabel} — ${tournamentName}`, html);
+    console.log(`[Tournament] Next-match email sent to ${playerName} <${email}>`);
+  } catch (err: any) {
+    console.error(`[Tournament] Failed to send email to ${email}:`, err?.message);
+  }
+}
+
+function getRoundLabel(round: number, maxRound: number): string {
+  const diff = maxRound - round;
+  if (diff === 0) return 'Final';
+  if (diff === 1) return 'Semi Final';
+  if (diff === 2) return 'Quarter Final';
+  return `Round ${round}`;
+}
+
+async function notifyNextRoundPlayers(
+  tournament: any,
+  nextSlot: any,
+  allParticipants: any[],
+) {
+  if (!nextSlot || !nextSlot.participantA || !nextSlot.participantB) return; // slot not fully populated yet
+  const bracket = tournament.bracket as any[];
+  const maxRound = Math.max(...bracket.map((m: any) => m.round));
+  const label = getRoundLabel(nextSlot.round, maxRound);
+
+  const pA = allParticipants.find(p => String(p._id) === String(nextSlot.participantA));
+  const pB = allParticipants.find(p => String(p._id) === String(nextSlot.participantB));
+  if (!pA || !pB) return;
+
+  // Find user emails — match by user_id first, fallback by phone/name
+  const getUserEmail = async (participant: any): Promise<{ name: string; email: string | null }> => {
+    if (participant.user_id) {
+      const u = await User.findById(participant.user_id).select('email name').lean();
+      if (u?.email) return { name: u.name, email: u.email };
+    }
+    if (participant.phone) {
+      const u = await User.findOne({ mobile: participant.phone }).select('email name').lean();
+      if (u?.email) return { name: u.name, email: u.email };
+    }
+    return { name: participant.name, email: null };
+  };
+
+  const [infoA, infoB] = await Promise.all([getUserEmail(pA), getUserEmail(pB)]);
+  const venue = tournament.venue;
+  const city  = tournament.city;
+  const date  = tournament.start_date;
+
+  if (infoA.email) await sendNextMatchEmail(infoA.email, infoA.name, pB.name, label, tournament.name, venue, city, date);
+  if (infoB.email) await sendNextMatchEmail(infoB.email, infoB.name, pA.name, label, tournament.name, venue, city, date);
+}
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -272,6 +365,17 @@ export const TournamentService = {
       if (nextSlot) {
         if (isSlotA) nextSlot.participantA = slot.winner;
         else         nextSlot.participantB = slot.winner;
+
+        // Notify both players in next slot if it's now fully populated
+        const allParticipants = await Participant.find({ tournament_id: tournament._id }).lean();
+        tournament.markModified('bracket');
+        const saved = await tournament.save();
+        // Re-read to get populated next slot
+        const freshNextSlot = (saved.bracket as any[]).find(
+          (m: any) => m.round === nextRound && m.matchIndex === nextIdx
+        );
+        setImmediate(() => notifyNextRoundPlayers(saved, freshNextSlot, allParticipants));
+        return saved;
       } else {
         // Final completed — award ranking points
         tournament.status = 'completed';
@@ -357,5 +461,67 @@ export const TournamentService = {
     if (t.status !== 'registration_open') throw new Error('Tournament is not open for registration');
     t.status = 'registration_closed';
     return await t.save();
+  },
+
+  // ── Bye — participant forfeits, opponent auto-advances ─────────────────────
+
+  async byeMatch(tournamentId: string, bracketMatchId: string, requestingUserId: string) {
+    const tournament = await Tournament.findById(tournamentId);
+    if (!tournament) throw new Error('Tournament not found');
+
+    const bracket = tournament.bracket as any[];
+    const slot    = bracket.find(m => String(m._id) === bracketMatchId);
+    if (!slot)                       throw new Error('Bracket match not found');
+    if (slot.status === 'completed' || slot.status === 'bye') {
+      throw new Error('This match is already resolved');
+    }
+    if (!slot.participantA || !slot.participantB) {
+      throw new Error('Match is not yet ready — waiting for opponents');
+    }
+
+    // Determine which participant belongs to the requesting user
+    const [pA, pB] = await Promise.all([
+      Participant.findById(slot.participantA).lean(),
+      Participant.findById(slot.participantB).lean(),
+    ]);
+
+    let forfeitParticipantId: string;
+    let winnerParticipantId: string;
+
+    const matchesUser = (p: any) =>
+      (p?.user_id && String(p.user_id) === requestingUserId);
+
+    if (matchesUser(pA)) {
+      forfeitParticipantId = String(slot.participantA);
+      winnerParticipantId  = String(slot.participantB);
+    } else if (matchesUser(pB)) {
+      forfeitParticipantId = String(slot.participantB);
+      winnerParticipantId  = String(slot.participantA);
+    } else {
+      throw new Error('You are not a participant in this match');
+    }
+
+    // Mark slot as bye with the opponent as winner
+    slot.winner = new mongoose.Types.ObjectId(winnerParticipantId);
+    slot.status = 'bye';
+
+    // Advance winner to next round
+    if (tournament.format === 'knockout') {
+      const nextRound = slot.round + 1;
+      const nextIdx   = Math.floor(slot.matchIndex / 2);
+      const isSlotA   = slot.matchIndex % 2 === 0;
+      const nextSlot  = bracket.find(m => m.round === nextRound && m.matchIndex === nextIdx);
+
+      if (nextSlot) {
+        if (isSlotA) nextSlot.participantA = slot.winner;
+        else         nextSlot.participantB = slot.winner;
+      }
+    }
+
+    await Participant.findByIdAndUpdate(forfeitParticipantId, { status: 'eliminated' });
+
+    if (tournament.status === 'draw_generated') tournament.status = 'in_progress';
+    tournament.markModified('bracket');
+    return await tournament.save();
   },
 };

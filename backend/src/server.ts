@@ -21,6 +21,7 @@ import { setEmailProvider } from './services/otp.service';
 import { BrevoEmailProvider } from './services/email.provider';
 import type { EmailProvider } from './services/email.provider';
 import { startMatchReminderJob, setReminderEmailProvider } from './services/match-reminder.service';
+import { setTournamentEmailProvider } from './services/tournament.service';
 // ── Startup validation ───────────────────────────────────────────────────────
 validateConfig();
 
@@ -47,6 +48,7 @@ if (brevoApiKey) {
 
 setEmailProvider(provider);
 setReminderEmailProvider(provider);
+setTournamentEmailProvider(provider);
 
 // ── Express + Socket.IO ──────────────────────────────────────────────────────
 const app = express();

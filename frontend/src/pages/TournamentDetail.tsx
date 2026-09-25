@@ -219,6 +219,21 @@ const TournamentDetail = () => {
     } catch (e: any) { showError(e.message); }
   };
 
+  const handleBye = async (bracketMatchId: string) => {
+    if (!tournament) return;
+    try {
+      await TournamentAPI.byeMatch(tournament.id, bracketMatchId);
+      showSuccess('Bye given — opponent advances');
+      load();
+    } catch (e: any) { showError(e.message); }
+  };
+
+  // Find the current user's participant entry in this tournament
+  const myParticipant = participants.find(p =>
+    (p.user_id && String(p.user_id) === currentUserId) ||
+    (() => { try { return JSON.parse(localStorage.getItem('userProfile') || '{}').name?.toLowerCase() === p.name?.toLowerCase(); } catch { return false; } })()
+  );
+
   const handleApprove = async (participantId: string) => {
     try {
       await TournamentAPI.approveParticipant(tournament.id, participantId);
@@ -418,6 +433,8 @@ const TournamentDetail = () => {
                 <BracketTree
                   bracket={bracket}
                   onResult={isCreator ? handleResult : undefined}
+                  onBye={handleBye}
+                  currentParticipantId={myParticipant ? String(myParticipant._id) : undefined}
                 />
               </div>
             )}

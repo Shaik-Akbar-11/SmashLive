@@ -17,6 +17,8 @@ interface BracketSlot {
 interface Props {
   bracket: BracketSlot[];
   onResult?: (matchId: string, winnerId: string) => void;
+  onBye?: (matchId: string) => void;
+  currentParticipantId?: string; // the logged-in user's participant _id in this tournament
 }
 
 function roundLabel(round: number, totalRounds: number): string {
@@ -33,10 +35,12 @@ function getName(p: any): string {
 }
 
 const MatchCard = ({
-  match, onResult, isLast
+  match, onResult, onBye, currentParticipantId, isLast
 }: {
   match: BracketSlot;
   onResult?: (matchId: string, winnerId: string) => void;
+  onBye?: (matchId: string) => void;
+  currentParticipantId?: string;
   isLast: boolean;
 }) => {
   const pA = match.participantA;
@@ -47,8 +51,14 @@ const MatchCard = ({
   const isDone = match.status === 'completed' || match.status === 'bye';
   const canScore = !isDone && pA && pB && onResult;
 
+  // Show BYE button only to the player who is IN this match and it's not done
+  const isMyMatch = !isDone && currentParticipantId && (
+    pAId === currentParticipantId || pBId === currentParticipantId
+  );
+  const canBye = isMyMatch && !!onBye;
+
   return (
-    <div className="relative flex items-center">
+    <div className="relative flex flex-col items-start gap-1">
       {/* Match card */}
       <div className={cn(
         'w-44 rounded-2xl overflow-hidden border shadow-sm bg-white',
@@ -102,6 +112,20 @@ const MatchCard = ({
         </div>
       </div>
 
+      {/* BYE button — only for the player whose match this is */}
+      {canBye && (
+        <button
+          onClick={() => {
+            if (confirm('Give a Bye? Your opponent will be declared the winner and advance. This cannot be undone.')) {
+              onBye!(String(match._id));
+            }
+          }}
+          className="w-44 text-[8px] font-black text-red-400 border border-red-100 bg-red-50 hover:bg-red-100 rounded-xl py-1.5 uppercase tracking-widest transition"
+        >
+          🚫 Give Bye (Forfeit)
+        </button>
+      )}
+
       {/* Connector line to next round */}
       {!isLast && (
         <div className="absolute left-full top-0 bottom-0 w-8 pointer-events-none">
@@ -114,7 +138,7 @@ const MatchCard = ({
   );
 };
 
-const BracketTree: React.FC<Props> = ({ bracket, onResult }) => {
+const BracketTree: React.FC<Props> = ({ bracket, onResult, onBye, currentParticipantId }) => {
   if (!bracket || bracket.length === 0) return null;
 
   const rounds = [...new Set(bracket.map(m => m.round))].sort((a, b) => a - b);
@@ -156,6 +180,8 @@ const BracketTree: React.FC<Props> = ({ bracket, onResult }) => {
                     <MatchCard
                       match={match}
                       onResult={onResult}
+                      onBye={onBye}
+                      currentParticipantId={currentParticipantId}
                       isLast={isLastRound}
                     />
                   </div>

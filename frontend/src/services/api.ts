@@ -77,6 +77,9 @@ export const TournamentAPI = {
       body: JSON.stringify({ bracketMatchId, winnerParticipantId }),
     }),
 
+  byeMatch: (id: string, matchId: string) =>
+    request<any>(`/tournaments/${id}/bracket/${matchId}/bye`, { method: 'POST' }),
+
   getMatches: (id: string) =>
     request<any[]>(`/tournaments/${id}/matches`),
 

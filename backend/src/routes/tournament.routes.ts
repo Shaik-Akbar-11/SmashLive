@@ -46,4 +46,7 @@ router.post('/:id/close-registration', protect, requireCreator, tournamentContro
 router.patch('/:id/participants/:participantId/approve', protect, requireCreator, tournamentController.approveParticipant);
 router.patch('/:id/participants/:participantId/reject',  protect, requireCreator, tournamentController.rejectParticipant);
 
+// POST /:id/bracket/:matchId/bye — participant forfeits; opponent advances (auth required)
+router.post('/:id/bracket/:matchId/bye', protect, tournamentController.byeMatch);
+
 export default router;

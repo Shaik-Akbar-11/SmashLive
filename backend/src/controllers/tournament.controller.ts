@@ -99,4 +99,12 @@ export const tournamentController = {
     try { ok(res, await TournamentService.rejectParticipant(req.params.id, req.params.participantId)); }
     catch (e) { err(res, e); }
   },
+
+  // Bye — participant forfeits their match; opponent advances
+  async byeMatch(req: Request, res: Response) {
+    try {
+      const userId = (req as any).user?._id;
+      ok(res, await TournamentService.byeMatch(req.params.id, req.params.matchId, String(userId)));
+    } catch (e) { err(res, e); }
+  },
 };
