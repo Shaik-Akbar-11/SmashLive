@@ -3,6 +3,7 @@ import { User } from '../models/User';
 import { Match } from '../models/Match';
 import { Participant } from '../models/Participant';
 import { getRankings, recalculateAllRankings } from '../services/ranking.service';
+import { Tournament } from '../models/Tournament';
 import mongoose from 'mongoose';
 
 const router = express.Router();
@@ -279,21 +280,73 @@ router.get('/:id/stats', async (req: Request, res: Response) => {
       }
     }
 
+    // ── Badge computation ─────────────────────────────────────────────────────
+    const badges: { id: string; label: string; description: string }[] = [];
+
+    const finalStreak = computedStreak || user.currentStreak || 0;
+    const finalPlayed = Math.max(user.matchesPlayed, computedPlayed);
+    const finalWon    = Math.max(user.matchesWon, computedWon);
+    const finalWinRate = finalPlayed > 0 ? Math.round((finalWon / finalPlayed) * 100) : 0;
+
+    // 1. Winning Streak — 5+ consecutive wins
+    if (finalStreak >= 5) {
+      badges.push({ id: 'winning_streak', label: 'Winning Streak', description: `${finalStreak} consecutive wins` });
+    }
+
+    // 2. Tournament Performer — won at least one tournament match with 60%+ win rate in tournaments
+    const tournamentWins   = participations.filter((p: any) => p.status === 'winner').length;
+    const tournamentPlayed = participations.filter((p: any) =>
+      ['winner', 'eliminated', 'confirmed'].includes(p.status)
+    ).length;
+    if (tournamentWins >= 1 && tournamentPlayed >= 2 && (tournamentWins / tournamentPlayed) >= 0.5) {
+      badges.push({ id: 'tournament_performer', label: 'Tournament Performer', description: 'Strong win rate in tournaments' });
+    }
+
+    // 10. Finalist — reached a tournament final (last round in bracket) and lost, or won
+    // A finalist is a participant who was in the final bracket match (highest round) of a completed tournament
+    const finalistCheck = await Promise.all(
+      participations.map(async (p: any) => {
+        const tid = p.tournament_id?._id || p.tournament_id;
+        if (!tid) return false;
+        const tourney = await Tournament.findById(tid).select('bracket status').lean();
+        if (!tourney || (tourney as any).status !== 'completed') return false;
+        const bracket = (tourney as any).bracket || [];
+        if (!bracket.length) return false;
+        const maxRound = Math.max(...bracket.map((bm: any) => bm.round));
+        const finals   = bracket.filter((bm: any) => bm.round === maxRound);
+        const participantId = String(p._id);
+        return finals.some((bm: any) =>
+          String(bm.participantA) === participantId ||
+          String(bm.participantB) === participantId
+        );
+      })
+    );
+    if (finalistCheck.some(Boolean)) {
+      badges.push({ id: 'finalist', label: 'Finalist', description: 'Reached a tournament final' });
+    }
+
+    // 14. Elite Player — 500+ ranking points and 10+ matches
+    if (user.rankingPoints >= 500 && finalPlayed >= 10) {
+      badges.push({ id: 'elite_player', label: 'Elite Player', description: 'High rating with proven match experience' });
+    }
+    // ─────────────────────────────────────────────────────────────────────────
+
     res.json({
       user,
       stats: {
-        matchesPlayed:     Math.max(user.matchesPlayed, computedPlayed),
-        matchesWon:        Math.max(user.matchesWon, computedWon),
+        matchesPlayed:     finalPlayed,
+        matchesWon:        finalWon,
         matchesLost:       Math.max(user.matchesLost, computedLost),
         winRate:           `${Math.max(winRate, computedWinRate)}%`,
         rankingPoints:     user.rankingPoints,
-        currentStreak:     computedStreak || user.currentStreak,
+        currentStreak:     finalStreak,
         tournamentsPlayed: user.tournamentsPlayed,
         tournamentsWon:    user.tournamentsWon,
         smashes,
         nets,
         errors,
       },
+      badges,
       matchHistory,
       tournaments: participations.map((p: any) => ({
         _id:    p.tournament_id?._id,

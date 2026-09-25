@@ -25,6 +25,7 @@ const PlayerProfile = () => {
   const [stats, setStats]             = useState<any>(null);
   const [matchHistory, setMatchHistory] = useState<any[]>([]);
   const [tournaments, setTournaments]   = useState<any[]>([]);
+  const [badges, setBadges]             = useState<any[]>([]);
   const [isFollowing, setIsFollowing]   = useState(false);
   const [followersCount, setFollowersCount] = useState(0);
   const [followLoading, setFollowLoading]   = useState(false);
@@ -60,6 +61,7 @@ const PlayerProfile = () => {
       setStats(result.stats);
       setMatchHistory(result.matchHistory || []);
       setTournaments(result.tournaments || []);
+      setBadges(result.badges || []);
 
       // Load follow state for other players' profiles
       const myId = currentUserId || savedProfile?._id || savedProfile?.id;
@@ -220,6 +222,27 @@ const PlayerProfile = () => {
           </div>
         </div>
 
+        {/* Earned tags */}
+        {badges.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {badges.map(b => (
+              <span key={b.id} className={cn(
+                'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest',
+                b.id === 'winning_streak'       && 'bg-orange-50 text-orange-500 border border-orange-100',
+                b.id === 'tournament_performer' && 'bg-sky-50 text-sky-600 border border-sky-100',
+                b.id === 'finalist'             && 'bg-amber-50 text-amber-600 border border-amber-100',
+                b.id === 'elite_player'         && 'bg-indigo-50 text-indigo-600 border border-indigo-100',
+              )}>
+                {b.id === 'winning_streak'       && '🔥'}
+                {b.id === 'tournament_performer' && '🏆'}
+                {b.id === 'finalist'             && '🥈'}
+                {b.id === 'elite_player'         && '👑'}
+                {b.label}
+              </span>
+            ))}
+          </div>
+        )}
+
         {/* Tabs */}
         <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
           {tabs.map(tab => (
@@ -253,7 +276,7 @@ const PlayerProfile = () => {
               <TournamentSection matchHistory={matchHistory} tournaments={tournaments} />
             )}
             {activeTab === 'analytics' && <AnalyticsSection />}
-            {activeTab === 'badges' && <AchievementSection />}
+            {activeTab === 'badges' && <AchievementSection badges={badges} />}
           </motion.div>
         </AnimatePresence>
       </main>
