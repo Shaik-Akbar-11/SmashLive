@@ -293,7 +293,7 @@ const Court = () => {
           </h2>
           <div className="flex flex-col gap-2">
             {tournaments.length > 0 ? tournaments.map((t, i) => (
-              <Link to={`/tournament/${t.id}`} key={i} className="app-card flex items-center justify-between p-3">
+              <Link to={`/tournament/${t._id || t.id}`} key={i} className="app-card flex items-center justify-between p-3">
                 <div className="flex items-center gap-3">
                   <div className="h-10 w-10 rounded-xl bg-[#0B1F3A] flex items-center justify-center text-sky-400 shrink-0">
                     <Trophy className="h-5 w-5" />

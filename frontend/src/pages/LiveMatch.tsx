@@ -91,7 +91,7 @@ const LiveMatch = () => {
       path: `/broadcast/${m.id}`,
     }));
     const tourneys = liveTournaments.map(t => ({
-      id: t.id, type: 'tournament', title: t.name, path: `/tournament/${t.id}`,
+      id: t._id || t.id, type: 'tournament', title: t.name, path: `/tournament/${t._id || t.id}`,
       p1: '', p2: '', score: '',
     }));
     const all = [...matches, ...tourneys];
