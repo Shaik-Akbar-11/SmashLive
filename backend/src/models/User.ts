@@ -2,7 +2,6 @@ import mongoose, { Document } from 'mongoose';
 
 export interface IUser extends Document {
   name: string;
-  // Legacy profile data — kept for stats lookups, not used for auth
   mobile?: string;
   email?: string;
   emailVerified: boolean;
@@ -26,13 +25,13 @@ export interface IUser extends Document {
   club?: string;
   university?: string;
   avatar?: string;
+  followers: mongoose.Types.ObjectId[];
+  following: mongoose.Types.ObjectId[];
 }
 
 const userSchema = new mongoose.Schema<IUser>({
   name:          { type: String, required: true },
-  // mobile is legacy profile data — optional, non-unique, not used for auth
   mobile:        { type: String },
-  // email is the auth identity for all new users
   email:         { type: String, lowercase: true, trim: true },
   emailVerified: { type: Boolean, default: false },
   gender:        { type: String },
@@ -51,6 +50,8 @@ const userSchema = new mongoose.Schema<IUser>({
   club:               { type: String },
   university:         { type: String },
   avatar:             { type: String, default: '' },
+  followers:          [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+  following:          [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   rankingPoints:      { type: Number, default: 0, index: true },
   matchesPlayed:      { type: Number, default: 0 },
   matchesWon:         { type: Number, default: 0 },
@@ -61,10 +62,6 @@ const userSchema = new mongoose.Schema<IUser>({
   lastMatchAt:        { type: Date },
 }, { timestamps: true });
 
-/**
- * Partial unique index on email — only enforces uniqueness when email is a
- * string. Legacy users without email neither collide nor break.
- */
 userSchema.index(
   { email: 1 },
   {
@@ -74,7 +71,6 @@ userSchema.index(
   }
 );
 
-/** Plain (non-unique) index on mobile for legacy stats-lookup queries. */
 userSchema.index({ mobile: 1 }, { name: 'mobile_1' });
 
 export const User = mongoose.model<IUser>('User', userSchema);
