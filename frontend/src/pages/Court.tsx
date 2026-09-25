@@ -61,6 +61,7 @@ const Court = () => {
   const [tournaments, setTournaments] = useState<any[]>([]);
   const [profile,     setProfile]     = useState<any>(null);
   const [stats,       setStats]       = useState<any>(null);
+  const [userRank,    setUserRank]    = useState<number | null>(null);
   const [siteStats,   setSiteStats]   = useState<{ athletes: number; tourneys: number; participants: number } | null>(null);
   const [loading,     setLoading]     = useState(true);
 
@@ -113,6 +114,12 @@ const Court = () => {
         try {
           const s = await UserAPI.getStats(prof._id || prof.id);
           setStats(s.stats);
+          // Compute rank from world rankings
+          try {
+            const rankings = await UserAPI.getRankings('world');
+            const idx = rankings.findIndex((u: any) => String(u._id) === String(prof._id || prof.id));
+            if (idx !== -1) setUserRank(idx + 1);
+          } catch {}
         } catch {}
       }
     } catch { /* offline — show empty */ }
@@ -151,7 +158,25 @@ const Court = () => {
             <h1 className="uppercase italic">Hello, {profile?.name?.split(' ')[0] || "Athlete"}! 🔥</h1>
             <Badge className="bg-sky-500 text-white border-none text-[10px] font-black h-6 uppercase">Active</Badge>
           </div>
-          <SmashRating rating={stats?.rankingPoints || profile?.rankingPoints || 0} level={1} xp={0} />
+          <SmashRating
+            rating={stats?.rankingPoints || profile?.rankingPoints || 0}
+            rank={userRank ?? undefined}
+            level={(() => {
+              const pts = stats?.rankingPoints ?? profile?.rankingPoints ?? 0;
+              const thresholds = [0, 100, 250, 500, 1000, 2000, 3500, 5000, 7000, 10000];
+              const lvl = thresholds.filter(t => pts >= t).length;
+              return Math.max(1, lvl);
+            })()}
+            xp={(() => {
+              const pts = stats?.rankingPoints ?? profile?.rankingPoints ?? 0;
+              const thresholds = [0, 100, 250, 500, 1000, 2000, 3500, 5000, 7000, 10000];
+              const lvl = thresholds.filter(t => pts >= t).length;
+              const currentLvl = Math.max(1, lvl);
+              const start = thresholds[currentLvl - 1] ?? 0;
+              const end   = thresholds[currentLvl] ?? (start + 2000);
+              return Math.round(((pts - start) / (end - start)) * 100);
+            })()}
+          />
 
           {/* Personal quick stats */}
           {(stats || profile?.matchesPlayed > 0) && (

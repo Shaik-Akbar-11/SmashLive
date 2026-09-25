@@ -2,7 +2,7 @@ import React from 'react';
 import { Zap, Trophy, TrendingUp } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 
-const SmashRating = ({ rating = 742, level = 12, xp = 65 }) => {
+const SmashRating = ({ rating = 0, level = 1, xp = 0, rank }: { rating?: number; level?: number; xp?: number; rank?: number | string }) => {
   return (
     <div className="bg-[#0B1F3A] rounded-2xl p-4 text-white relative overflow-hidden shadow-xl">
       <Zap className="absolute -right-4 -bottom-4 h-24 w-24 text-sky-500 opacity-10 rotate-12" />
@@ -19,7 +19,7 @@ const SmashRating = ({ rating = 742, level = 12, xp = 65 }) => {
         </div>
         <div className="text-right">
           <p className="text-[10px] font-black text-white/40 uppercase tracking-widest">Rank</p>
-          <p className="text-sm font-black text-white">#1,204</p>
+          <p className="text-sm font-black text-white">{rank ? `#${rank}` : '—'}</p>
         </div>
       </div>
 
