@@ -33,7 +33,8 @@ const News = () => {
         {/* News Feed */}
         <div className="space-y-3">
           {newsItems.map((item, i) => (
-            <div key={i} className="app-card p-5 flex items-center justify-between gap-4 active-press cursor-pointer">
+            <div key={i} className="app-card p-5 flex items-center justify-between gap-4 active-press cursor-pointer"
+              onClick={() => navigate('/tournaments')}>
               <div className="flex items-start gap-4 flex-1 min-w-0">
                 <div className="h-10 w-10 rounded-xl bg-sky-50 flex items-center justify-center shrink-0">
                   <Zap className="h-5 w-5 text-sky-500" />

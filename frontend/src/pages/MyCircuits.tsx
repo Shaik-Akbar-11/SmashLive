@@ -147,7 +147,7 @@ const MyCircuits = () => {
               {completedMatches.length > 0 ? completedMatches.map(m => {
                 const result = getMatchResult(m);
                 return (
-                  <div key={m.id} onClick={() => navigate(`/scoring/${m.id}`)}
+                  <div key={m.id} onClick={() => navigate(`/match/${m.id}`)}
                     className="bg-white border border-slate-100 rounded-2xl p-4 flex items-center gap-4 shadow-sm cursor-pointer hover:border-slate-200 transition-all">
                     <div className={cn('h-10 w-10 rounded-xl flex items-center justify-center font-black text-white text-sm shrink-0',
                       result === 'W' ? 'bg-green-500' : 'bg-red-400')}>

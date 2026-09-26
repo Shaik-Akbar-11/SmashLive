@@ -153,7 +153,7 @@ const CreateBroadcast = () => {
                       </div>
                     </div>
                     <Button 
-                      onClick={() => navigate('/smashed')}
+                      onClick={() => navigate('/live-match/create')}
                       className="w-full h-16 bg-sky-500 text-white font-black text-lg rounded-2xl shadow-xl hover:bg-sky-400 transition-transform active:scale-95"
                     >
                       GO LIVE NOW <Play className="ml-2 h-5 w-5 fill-current" />
