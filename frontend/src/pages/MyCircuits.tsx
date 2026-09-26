@@ -16,6 +16,7 @@ const MyCircuits = () => {
   const navigate = useNavigate();
   const [loading,              setLoading]              = useState(true);
   const [liveMatches,          setLiveMatches]          = useState<any[]>([]);
+  const [scheduledMatches,     setScheduledMatches]     = useState<any[]>([]);
   const [completedMatches,     setCompletedMatches]     = useState<any[]>([]);
   const [myTournaments,        setMyTournaments]        = useState<any[]>([]);
 
@@ -32,13 +33,14 @@ const MyCircuits = () => {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      // Fetch all matches — filter client-side by player identity
-      const [allMatches, allLive] = await Promise.all([
+      const [allMatches, allLive, allScheduled] = await Promise.all([
         MatchAPI.getAll(),
         MatchAPI.getAll('live'),
+        MatchAPI.getAll('scheduled'),
       ]);
 
       setLiveMatches(allLive.filter(matchesMe).map(m => ({ ...m, id: m._id || m.id })));
+      setScheduledMatches(allScheduled.filter(matchesMe).map(m => ({ ...m, id: m._id || m.id })));
       setCompletedMatches(
         allMatches
           .filter(m => m.status === 'completed' && matchesMe(m))
@@ -110,6 +112,46 @@ const MyCircuits = () => {
           <div className="py-20 flex justify-center"><Loader2 className="h-8 w-8 text-sky-500 animate-spin" /></div>
         ) : (
           <div className="space-y-8">
+
+            {/* Scheduled matches */}
+            {scheduledMatches.length > 0 && (
+              <section className="space-y-3">
+                <h2 className="text-[10px] font-black text-amber-500 uppercase tracking-widest flex items-center gap-2">
+                  <Clock className="h-3.5 w-3.5" /> Scheduled
+                </h2>
+                {scheduledMatches.map(m => {
+                  const eligible = !m.scheduledAt || new Date(m.scheduledAt) <= new Date();
+                  const timeStr = m.scheduledAt
+                    ? new Date(m.scheduledAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })
+                    : 'Anytime';
+                  return (
+                    <div key={m.id} className="bg-white border border-amber-100 rounded-2xl p-4 shadow-sm space-y-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <p className="font-black text-[#0B1F3A] uppercase text-xs truncate">{m.name || 'Match'}</p>
+                          <p className="text-[9px] font-bold text-slate-400 uppercase">{getP1(m)} vs {getP2(m)}</p>
+                          <p className="text-[9px] font-bold text-amber-500 mt-1 flex items-center gap-1">
+                            <Clock className="h-3 w-3" />{timeStr}
+                          </p>
+                        </div>
+                        {eligible
+                          ? <Badge className="bg-emerald-500 text-white border-none text-[8px] font-black uppercase shrink-0">Ready</Badge>
+                          : <Badge className="bg-amber-100 text-amber-600 border-none text-[8px] font-black uppercase shrink-0">Waiting</Badge>
+                        }
+                      </div>
+                      <Button
+                        onClick={() => navigate('/live-match/active')}
+                        className={cn(
+                          'w-full h-10 rounded-xl font-black text-[10px] uppercase gap-2',
+                          eligible ? 'bg-[#0B1F3A] text-white hover:bg-sky-500' : 'bg-slate-100 text-slate-400'
+                        )}>
+                        {eligible ? '▶ Start Match — Go to Live tab' : `⏳ Opens at ${timeStr}`}
+                      </Button>
+                    </div>
+                  );
+                })}
+              </section>
+            )}
 
             {/* Live matches */}
             <section className="space-y-3">

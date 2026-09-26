@@ -26,9 +26,15 @@ const LiveMatch = () => {
         MatchAPI.getAll('scheduled'),
         TournamentAPI.getAll(),
       ]);
-      setLiveMatches(live.map((m: any) => ({ ...m, id: m._id || m.id })));
-      setScheduledMatches(scheduled.map((m: any) => ({ ...m, id: m._id || m.id })));
+      const liveList = live.map((m: any) => ({ ...m, id: m._id || m.id }));
+      const scheduledList = scheduled.map((m: any) => ({ ...m, id: m._id || m.id }));
+      setLiveMatches(liveList);
+      setScheduledMatches(scheduledList);
       setLiveTournaments(tourneys.map((t: any) => ({ ...t, id: t._id || t.id })));
+      // Auto-switch to scheduled tab if no live matches but there are scheduled ones
+      if (liveList.length === 0 && scheduledList.length > 0) {
+        setActiveTab('scheduled');
+      }
     } finally {
       setIsLoading(false);
     }
