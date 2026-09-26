@@ -182,14 +182,30 @@ const CreateTournament = () => {
                 {/* Max participants */}
                 <div className="space-y-1.5">
                   <Label className="text-[10px] font-black uppercase text-slate-400 ml-1">Max Participants</Label>
-                  <Select value={form.max_participants} onValueChange={v => set('max_participants', v)}>
+                  <Select
+                    value={['4','8','16','32','64','128'].includes(form.max_participants) ? form.max_participants : 'custom'}
+                    onValueChange={v => set('max_participants', v === 'custom' ? '' : v)}
+                  >
                     <SelectTrigger className="h-12 rounded-xl bg-slate-50 border-slate-100 font-bold"><SelectValue /></SelectTrigger>
                     <SelectContent className="rounded-xl">
                       {['4','8','16','32','64','128'].map(n => (
                         <SelectItem key={n} value={n}>{n} Players</SelectItem>
                       ))}
+                      <SelectItem value="custom">Custom</SelectItem>
                     </SelectContent>
                   </Select>
+                  {!['4','8','16','32','64','128'].includes(form.max_participants) && (
+                    <Input
+                      type="number"
+                      min="2"
+                      max="1024"
+                      placeholder="Enter number of participants"
+                      value={form.max_participants}
+                      onChange={e => set('max_participants', e.target.value)}
+                      className="h-12 rounded-xl bg-slate-50 border-slate-100 font-bold"
+                      autoFocus
+                    />
+                  )}
                 </div>
               </div>
             </motion.div>
