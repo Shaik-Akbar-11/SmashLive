@@ -1,12 +1,12 @@
 import { useSocketEvent } from './use-socket';
 import { showSuccess } from '@/utils/toast';
 
-function dispatch(message: string, type: string) {
+function dispatch(message: string, type: string, link?: string) {
   // Show toast
   showSuccess(message);
   // Add to notification bell
   window.dispatchEvent(new CustomEvent('smashlive:notification', {
-    detail: { message, type }
+    detail: { message, type, link }
   }));
 }
 
@@ -44,7 +44,8 @@ export function useNotifications() {
   useSocketEvent('feed:match_created', (match: any) => {
     const str = JSON.stringify(match.players || '');
     if (!isMe(str)) return;
-    dispatch(`Your match "${match.name || 'New Match'}" has started!`, 'match_started');
+    const id = match._id || match.id;
+    dispatch(`Your match "${match.name || 'New Match'}" has started!`, 'match_started', id ? `/broadcast/${id}` : undefined);
   });
 
   // Match I'm in completed
@@ -54,7 +55,8 @@ export function useNotifications() {
     const winner = match.winner === 1
       ? (match.players?.p1?.name || match.players?.sideA?.[0]?.name)
       : (match.players?.p2?.name || match.players?.sideB?.[0]?.name);
-    dispatch(`Match complete! ${winner || 'Result'} wins 🏆`, 'match_completed');
+    const id = match._id || match.id;
+    dispatch(`Match complete! ${winner || 'Result'} wins 🏆`, 'match_completed', id ? `/broadcast/${id}` : undefined);
   });
 
   // Game/match complete during scoring
@@ -62,11 +64,12 @@ export function useNotifications() {
     const str = JSON.stringify(payload.players || '');
     if (!isMe(str)) return;
     const sc = payload.current_score;
+    const link = payload.matchId ? `/broadcast/${payload.matchId}` : undefined;
     if (payload.gameCompleted && sc) {
-      dispatch(`Game complete! Score: ${sc[0]}–${sc[1]}`, 'score');
+      dispatch(`Game complete! Score: ${sc[0]}–${sc[1]}`, 'score', link);
     }
     if (payload.matchCompleted) {
-      dispatch('Match finished! Check the scorecard.', 'match_completed');
+      dispatch('Match finished! Check the scorecard.', 'match_completed', link);
     }
   });
 
@@ -75,8 +78,10 @@ export function useNotifications() {
     const players: string[] = payload.players || [];
     if (!playerListIncludesMe(players)) return;
 
+    const link = payload.tournamentId ? `/tournament/${payload.tournamentId}` : undefined;
+
     if (payload.forfeit) {
-      dispatch(`✅ Opponent forfeited — you advance in ${payload.tournamentName}!`, 'tournament_next_match');
+      dispatch(`✅ Opponent forfeited — you advance in ${payload.tournamentName}!`, 'tournament_next_match', link);
       return;
     }
 
@@ -86,7 +91,8 @@ export function useNotifications() {
     const date = payload.date ? ` · ${payload.date}` : '';
     dispatch(
       `🏸 Next match: ${payload.round} vs ${opponent}${location}${date} — ${payload.tournamentName}`,
-      'tournament_next_match'
+      'tournament_next_match',
+      link
     );
   });
 }

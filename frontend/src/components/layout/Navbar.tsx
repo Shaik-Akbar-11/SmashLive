@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Bell, X, Trophy, Zap, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -11,6 +11,7 @@ interface Notification {
   time: Date;
   read: boolean;
   type: 'match_reminder' | 'match_started' | 'match_completed' | 'score' | 'tournament_next_match';
+  link?: string;
 }
 
 const Navbar = () => {
@@ -21,18 +22,20 @@ const Navbar = () => {
   const [showNotifs, setShowNotifs]     = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const location = useLocation();
+  const navigate = useNavigate();
   const panelRef = useRef<HTMLDivElement>(null);
 
   const unread = notifications.filter(n => !n.read).length;
 
-  const addNotification = (msg: string, type: Notification['type']) => {
+  const addNotification = (msg: string, type: Notification['type'], link?: string) => {
     setNotifications(prev => [{
       id: String(Date.now()),
       message: msg,
       time: new Date(),
       read: false,
       type,
-    }, ...prev].slice(0, 10)); // keep last 10
+      link,
+    }, ...prev].slice(0, 10));
   };
 
   const markAllRead = () => {
@@ -42,7 +45,7 @@ const Navbar = () => {
   // Listen for in-app notification events from use-notifications
   useEffect(() => {
     const handler = (e: any) => {
-      addNotification(e.detail.message, e.detail.type || 'match_started');
+      addNotification(e.detail.message, e.detail.type || 'match_started', e.detail.link);
     };
     window.addEventListener('smashlive:notification', handler);
     return () => window.removeEventListener('smashlive:notification', handler);
@@ -141,10 +144,15 @@ const Navbar = () => {
                 ) : (
                   <div className="max-h-72 overflow-y-auto">
                     {notifications.map(n => (
-                      <div key={n.id} className={cn(
-                        'flex items-start gap-3 px-4 py-3 border-b border-slate-50 last:border-0',
-                        !n.read && 'bg-sky-50/50'
-                      )}>
+                      <div
+                        key={n.id}
+                        onClick={() => { if (n.link) { setShowNotifs(false); navigate(n.link); } }}
+                        className={cn(
+                          'flex items-start gap-3 px-4 py-3 border-b border-slate-50 last:border-0 transition-colors',
+                          !n.read && 'bg-sky-50/50',
+                          n.link ? 'cursor-pointer hover:bg-sky-50' : 'cursor-default'
+                        )}
+                      >
                         <div className="mt-0.5 shrink-0">{iconForType(n.type)}</div>
                         <div className="flex-1 min-w-0">
                           <p className="text-[11px] font-bold text-[#0B1F3A] leading-tight">{n.message}</p>
