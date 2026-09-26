@@ -2,7 +2,7 @@
 import Navbar from '@/components/layout/Navbar';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Activity, Play, Search, Zap, Radio, Loader2, Calendar, Clock } from 'lucide-react';
+import { Activity, Play, Search, Zap, Radio, Loader2, Calendar, Clock, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -79,7 +79,30 @@ const LiveMatch = () => {
   });
 
   const [starting, setStarting] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<string | null>(null);
   const [now, setNow] = useState(new Date());
+
+  const currentUserId = useMemo(() => {
+    try {
+      const profile = localStorage.getItem('userProfile');
+      return profile ? JSON.parse(profile)._id : null;
+    } catch { return null; }
+  }, []);
+
+  const handleDeleteMatch = async (matchId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!confirm('Delete this match permanently? This cannot be undone.')) return;
+    setDeleting(matchId);
+    try {
+      await MatchAPI.delete(matchId);
+      setLiveMatches(prev => prev.filter(m => (m._id || m.id) !== matchId));
+      setScheduledMatches(prev => prev.filter(m => (m._id || m.id) !== matchId));
+    } catch (err: any) {
+      alert(err.message || 'Failed to delete match');
+    } finally {
+      setDeleting(null);
+    }
+  };
 
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 30000);
@@ -198,7 +221,20 @@ const LiveMatch = () => {
                     <Badge className={cn('text-white border-none text-[9px] font-black uppercase px-3 h-6', item.type === 'match' ? 'bg-[#0B1F3A]' : 'bg-sky-500')}>
                       {item.type === 'match' ? 'Match' : 'Tournament'}
                     </Badge>
-                    <Radio className="h-3 w-3 text-red-500 animate-pulse" />
+                    <div className="flex items-center gap-2">
+                      {item.type === 'match' && currentUserId && liveMatches.find(m => (m._id || m.id) === item.id)?.createdBy && String(liveMatches.find(m => (m._id || m.id) === item.id)?.createdBy) === String(currentUserId) && (
+                        <button
+                          onClick={(e) => handleDeleteMatch(item.id, e)}
+                          disabled={deleting === item.id}
+                          className="h-6 w-6 flex items-center justify-center rounded-lg text-red-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                        >
+                          {deleting === item.id
+                            ? <Loader2 className="h-3 w-3 animate-spin" />
+                            : <Trash2 className="h-3 w-3" />}
+                        </button>
+                      )}
+                      <Radio className="h-3 w-3 text-red-500 animate-pulse" />
+                    </div>
                   </div>
                   <div className="flex items-center justify-between gap-4">
                     <div className="space-y-1.5 flex-1">
@@ -250,27 +286,41 @@ const LiveMatch = () => {
                       <span className="flex items-center gap-1.5"><Calendar className="h-3 w-3 text-sky-400" />{formatScheduled(match)}</span>
                       {match.court && <span className="flex items-center gap-1.5"><Clock className="h-3 w-3 text-sky-400" />Court {match.court}</span>}
                     </div>
-                    <div className="pt-3 border-t border-slate-50 flex gap-3">
+                  <div className="pt-3 border-t border-slate-50 flex gap-3">
                       <Button onClick={() => navigate(`/scoring/${match.id}`)} variant="outline"
                         className="flex-1 h-11 rounded-xl font-black text-[10px] uppercase border-slate-200 bg-white">
                         View
                       </Button>
-                      <Button
-                        onClick={() => eligible && handleStartMatch(match.id)}
-                        disabled={starting === match.id || !eligible}
-                        className={cn(
-                          'flex-1 h-11 rounded-xl font-black text-[10px] uppercase gap-2 transition-all',
-                          eligible
-                            ? 'bg-[#0B1F3A] text-white hover:bg-sky-500'
-                            : 'bg-slate-100 text-slate-400 cursor-not-allowed'
-                        )}>
-                        {starting === match.id
-                          ? <Loader2 className="h-4 w-4 animate-spin" />
-                          : eligible
-                            ? <><Play className="h-4 w-4 fill-current" /> Start Now</>
-                            : <>⏳ Start {countdown(match)}</>
-                        }
-                      </Button>
+                      {currentUserId && match.createdBy && String(match.createdBy) === String(currentUserId) && (
+                        <Button
+                          onClick={(e) => handleDeleteMatch(match.id, e)}
+                          disabled={deleting === match.id}
+                          variant="outline"
+                          className="h-11 w-11 rounded-xl border-red-100 bg-white text-red-400 hover:text-red-600 hover:bg-red-50 hover:border-red-200 transition-colors p-0"
+                        >
+                          {deleting === match.id
+                            ? <Loader2 className="h-4 w-4 animate-spin" />
+                            : <Trash2 className="h-4 w-4" />}
+                        </Button>
+                      )}
+                      {currentUserId && match.createdBy && String(match.createdBy) === String(currentUserId) && (
+                        <Button
+                          onClick={() => eligible && handleStartMatch(match.id)}
+                          disabled={starting === match.id || !eligible}
+                          className={cn(
+                            'flex-1 h-11 rounded-xl font-black text-[10px] uppercase gap-2 transition-all',
+                            eligible
+                              ? 'bg-[#0B1F3A] text-white hover:bg-sky-500'
+                              : 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                          )}>
+                          {starting === match.id
+                            ? <Loader2 className="h-4 w-4 animate-spin" />
+                            : eligible
+                              ? <><Play className="h-4 w-4 fill-current" /> Start Now</>
+                              : <>⏳ Start {countdown(match)}</>
+                          }
+                        </Button>
+                      )}
                     </div>
                   </motion.div>
                 );

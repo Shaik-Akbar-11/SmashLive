@@ -66,6 +66,7 @@ export const MatchService = {
     scheduledAt?: string | Date;
     toss?: any;
     status?: string;
+    createdBy?: any;
   }) {
     const matchType = data.match_type || 'singles';
     const playerErr = validatePlayers(matchType, data.players);
@@ -87,6 +88,7 @@ export const MatchService = {
       toss:       data.toss,
       status:     data.status || defaultStatus,
       scheduledAt,
+      createdBy:  data.createdBy || null,
       current_score: [0, 0],
       sets_won:   [0, 0],
       game_scores: [],
