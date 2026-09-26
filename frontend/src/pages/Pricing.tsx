@@ -7,8 +7,10 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { useNavigate } from 'react-router-dom';
 
 const Pricing = () => {
+  const navigate = useNavigate();
   const tiers = [
     {
       name: "Fan",
@@ -97,7 +99,9 @@ const Pricing = () => {
                 ))}
               </div>
 
-              <Button size="lg" className={`w-full rounded-full h-16 font-black text-lg transition-all ${
+              <Button size="lg"
+                onClick={() => tier.name === 'Fan' ? navigate('/login') : tier.name === 'Pro' ? navigate('/login') : window.open('mailto:support@smashlive.app', '_blank')}
+                className={`w-full rounded-full h-16 font-black text-lg transition-all ${
                 tier.featured 
                 ? "bg-sky-500 text-white hover:bg-sky-400" 
                 : "bg-[#0B1F3A] text-white hover:bg-[#0B1F3A]/90"

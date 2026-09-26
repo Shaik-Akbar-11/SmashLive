@@ -275,7 +275,7 @@ const PlayerProfile = () => {
             {activeTab === 'history' && (
               <TournamentSection matchHistory={matchHistory} tournaments={tournaments} />
             )}
-            {activeTab === 'analytics' && <AnalyticsSection />}
+            {activeTab === 'analytics' && <AnalyticsSection stats={stats || profileData} />}
             {activeTab === 'badges' && <AchievementSection badges={badges} />}
           </motion.div>
         </AnimatePresence>

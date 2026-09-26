@@ -73,6 +73,9 @@ export const MatchService = {
 
     const scheduledAt = data.scheduledAt ? new Date(data.scheduledAt) : null;
 
+    // If scheduledAt is in the future, create as scheduled — not live
+    const defaultStatus = scheduledAt && scheduledAt > new Date() ? 'scheduled' : 'live';
+
     const match = new Match({
       name:       data.name || 'Match',
       match_type: matchType,
@@ -82,7 +85,7 @@ export const MatchService = {
       tournamentId: data.tournamentId,
       total_sets: data.total_sets || 3,
       toss:       data.toss,
-      status:     data.status || 'live',  // default to live so it appears immediately
+      status:     data.status || defaultStatus,
       scheduledAt,
       current_score: [0, 0],
       sets_won:   [0, 0],
