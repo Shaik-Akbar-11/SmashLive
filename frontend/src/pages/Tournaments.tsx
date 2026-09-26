@@ -57,7 +57,7 @@ const Tournaments = () => {
   };
 
   const isCreatorOf = (t: any) =>
-    !!currentUserId && (!t.creatorId || String(t.creatorId) === String(currentUserId));
+    !!currentUserId && !!t.creatorId && String(t.creatorId) === String(currentUserId);
 
   const filtered = useMemo(() =>
     tourneys.filter(t => {
