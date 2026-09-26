@@ -65,13 +65,17 @@ const PremiumScoreboard = ({ p1, p2, currentScore, serving }: ScoreboardProps) =
           </div>
           
           <div className="flex gap-1.5 mt-3">
-            {p1.sets.map((set, i) => (
-              <div key={i} className="bg-slate-50 border border-slate-100 rounded-lg px-2 py-0.5 flex gap-2 items-center">
-                <span className={cn("text-[10px] font-black", set > p2.sets[i] ? "text-sky-600" : "text-slate-400")}>{set}</span>
-                <span className="text-[8px] font-black opacity-20">/</span>
-                <span className={cn("text-[10px] font-black", p2.sets[i] > set ? "text-sky-600" : "text-slate-400")}>{p2.sets[i]}</span>
-              </div>
-            ))}
+            {p1.sets.map((set, i) => {
+              // Only show if at least one side has won this game
+              if (set === 0 && p2.sets[i] === 0) return null;
+              return (
+                <div key={i} className="bg-slate-50 border border-slate-100 rounded-lg px-2 py-0.5 flex gap-2 items-center">
+                  <span className={cn("text-[10px] font-black", set > p2.sets[i] ? "text-sky-600" : "text-slate-400")}>{set}</span>
+                  <span className="text-[8px] font-black opacity-20">/</span>
+                  <span className={cn("text-[10px] font-black", p2.sets[i] > set ? "text-sky-600" : "text-slate-400")}>{p2.sets[i]}</span>
+                </div>
+              );
+            })}
           </div>
         </div>
 
