@@ -72,7 +72,22 @@ const LiveMatch = () => {
     setLiveMatches(prev => prev.filter(m => (m._id || m.id) !== String(match._id)));
   });
 
-  const isEligible = (match: any): boolean => {
+  const [starting, setStarting] = useState<string | null>(null);
+
+  const handleStartMatch = async (matchId: string) => {
+    setStarting(matchId);
+    try {
+      await MatchAPI.start(matchId);
+      // Remove from scheduled, it will appear in live via socket or re-fetch
+      setScheduledMatches(prev => prev.filter(m => (m._id || m.id) !== matchId));
+      navigate(`/scoring/${matchId}`);
+    } catch {
+      // If start fails (e.g. already live), just navigate
+      navigate(`/scoring/${matchId}`);
+    } finally {
+      setStarting(null);
+    }
+  };
     if (!match.scheduledAt) return true;
     return new Date(match.scheduledAt) <= new Date();
   };
@@ -219,9 +234,14 @@ const LiveMatch = () => {
                         View Match
                       </Button>
                       {eligible && (
-                        <Button onClick={() => navigate(`/scoring/${match.id}`)}
-                          className="flex-1 h-11 rounded-xl bg-[#0B1F3A] text-white font-black text-[10px] uppercase gap-2">
-                          <Play className="h-4 w-4 fill-current" /> Start Match
+                        <Button
+                          onClick={() => handleStartMatch(match.id)}
+                          disabled={starting === match.id}
+                          className="flex-1 h-11 rounded-xl bg-[#0B1F3A] text-white font-black text-[10px] uppercase gap-2 hover:bg-sky-500 transition-all">
+                          {starting === match.id
+                            ? <Loader2 className="h-4 w-4 animate-spin" />
+                            : <><Play className="h-4 w-4 fill-current" /> Start Match</>
+                          }
                         </Button>
                       )}
                     </div>
