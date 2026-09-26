@@ -59,6 +59,12 @@ export function useNotifications() {
   useSocketEvent('tournament:next_match', (payload: any) => {
     const players: string[] = (payload.players || []).map((n: string) => n.toLowerCase());
     if (!myName || !players.some(p => p.includes(myName) || myName.includes(p))) return;
+
+    if (payload.forfeit) {
+      dispatch(`✅ Opponent forfeited — you advance in ${payload.tournamentName}!`, 'tournament_next_match');
+      return;
+    }
+
     const opponent = players.find(p => !p.includes(myName) && !myName.includes(p)) || 'your opponent';
     const location = payload.venue || payload.city ? ` · ${payload.venue || payload.city}` : '';
     const date = payload.date ? ` · ${payload.date}` : '';

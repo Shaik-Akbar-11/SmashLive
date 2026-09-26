@@ -523,13 +523,12 @@ export const TournamentService = {
     slot.winner = new mongoose.Types.ObjectId(winnerParticipantId);
     slot.status = 'bye';
 
-    // Advance winner to next round
+    // Advance winner to next round + notify
     if (tournament.format === 'knockout') {
       const nextRound = slot.round + 1;
       const nextIdx   = Math.floor(slot.matchIndex / 2);
       const isSlotA   = slot.matchIndex % 2 === 0;
       const nextSlot  = bracket.find(m => m.round === nextRound && m.matchIndex === nextIdx);
-
       if (nextSlot) {
         if (isSlotA) nextSlot.participantA = slot.winner;
         else         nextSlot.participantB = slot.winner;
@@ -540,6 +539,39 @@ export const TournamentService = {
 
     if (tournament.status === 'draw_generated') tournament.status = 'in_progress';
     tournament.markModified('bracket');
-    return await tournament.save();
-  },
-};
+    const saved = await tournament.save();
+
+    // Notify winner that they advance (opponent forfeited)
+    if (tournament.format === 'knockout') {
+      const nextRound = slot.round + 1;
+      const nextIdx   = Math.floor(slot.matchIndex / 2);
+      const freshNextSlot = (saved.bracket as any[]).find(
+        (m: any) => m.round === nextRound && m.matchIndex === nextIdx
+      );
+      const allParticipants = await Participant.find({ tournament_id: tournament._id }).lean();
+
+      // Immediate bell notification to winner
+      const winnerP = allParticipants.find(p => String(p._id) === winnerParticipantId);
+      if (winnerP && _io) {
+        const bracket2 = saved.bracket as any[];
+        const maxRound = Math.max(...bracket2.map((m: any) => m.round));
+        _io.emit('tournament:next_match', {
+          tournamentId: String(saved._id),
+          tournamentName: (saved as any).name,
+          round: getRoundLabel(slot.round, maxRound),
+          players: [winnerP.name],
+          venue: (saved as any).venue,
+          city:  (saved as any).city,
+          date:  (saved as any).start_date,
+          message: `✅ Opponent forfeited — you advance in ${(saved as any).name}!`,
+          forfeit: true,
+        });
+      }
+
+      // If next slot is now fully populated, notify both players
+      if (freshNextSlot) {
+        setImmediate(() => notifyNextRoundPlayers(saved, freshNextSlot, allParticipants));
+      }
+    }
+
+    return saved;
