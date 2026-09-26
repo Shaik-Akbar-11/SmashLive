@@ -11,9 +11,9 @@ export const matchOwner = async (req: any, res: Response, next: NextFunction) =>
     const match = await Match.findById(req.params.id).lean();
     if (!match) return res.status(404).json({ message: 'Match not found' });
 
-    // If match has no createdBy, deny access (all new matches must have a creator)
+    // If match has no createdBy (legacy), allow any authenticated user to delete/manage it
     if (!(match as any).createdBy) {
-      return res.status(403).json({ message: 'Only the match creator can perform this action' });
+      return next();
     }
 
     if (String((match as any).createdBy) !== String(req.user._id)) {
