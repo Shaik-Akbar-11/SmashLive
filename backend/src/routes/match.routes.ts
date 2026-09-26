@@ -12,12 +12,16 @@ const router = express.Router();
 const optionalProtect = async (req: any, _res: any, next: any) => {
   try {
     const auth = req.headers.authorization;
+    console.log('[optionalProtect] auth header:', auth ? 'present' : 'missing');
     if (auth?.startsWith('Bearer ')) {
       const token = auth.split(' ')[1];
       const decoded: any = jwt.verify(token, config.jwtSecret);
       req.user = await User.findById(decoded.id).select('-password');
+      console.log('[optionalProtect] user resolved:', req.user?._id || 'null');
     }
-  } catch {}
+  } catch (e: any) {
+    console.log('[optionalProtect] error:', e.message);
+  }
   next();
 };
 

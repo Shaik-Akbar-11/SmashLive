@@ -9,6 +9,8 @@ export const matchController = {
     try {
       const matchData = { ...req.body };
       // If user is logged in, store as creator
+      console.log('[match.create] auth header:', req.headers.authorization ? 'present' : 'missing');
+      console.log('[match.create] req.user:', (req as any).user?._id || 'none');
       if ((req as any).user?._id) {
         matchData.createdBy = (req as any).user._id;
       }
