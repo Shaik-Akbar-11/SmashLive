@@ -168,6 +168,7 @@ const CreateIndividualMatch = () => {
     name: 'Friendly Match', category: 'Friendly', sets: '3',
     court: '', courtType: '', city: '', venue: '',
     date: '', time: '', official: '',
+    short_game: false,
   });
 
   // Phase 3 state
@@ -279,6 +280,7 @@ const CreateIndividualMatch = () => {
         court:      config.court,
         total_sets: parseInt(config.sets),
         scheduledAt: scheduledAt.toISOString(),
+        short_game: config.short_game,
       });
       showSuccess('Match scheduled!');
       navigate('/live-match/active', { replace: true });
@@ -313,6 +315,7 @@ const CreateIndividualMatch = () => {
       court:      config.court,
       total_sets: parseInt(config.sets),
       status:     'live',
+      short_game: config.short_game,
       // Parse scheduledAt from date+time fields if provided
       scheduledAt: config.date && config.time
         ? new Date(`${config.date}T${config.time}`)
@@ -534,6 +537,31 @@ const CreateIndividualMatch = () => {
                     <Label className="text-[10px] font-black uppercase text-slate-400">Match Official (optional)</Label>
                     <Input value={config.official} onChange={e => setConfig(c => ({ ...c, official: e.target.value }))}
                       className="h-12 bg-slate-50 border-slate-100 rounded-xl font-bold" placeholder="Umpire / Referee name" />
+                  </div>
+
+                  {/* Short game toggle */}
+                  <div className="col-span-2">
+                    <button
+                      type="button"
+                      onClick={() => setConfig(c => ({ ...c, short_game: !c.short_game }))}
+                      className={cn(
+                        'w-full h-14 rounded-xl border-2 flex items-center justify-between px-5 transition-all font-black text-[11px] uppercase tracking-widest',
+                        config.short_game
+                          ? 'bg-sky-500 border-sky-500 text-white'
+                          : 'bg-slate-50 border-slate-100 text-slate-400'
+                      )}
+                    >
+                      <span>15-Point Short Game</span>
+                      <div className={cn(
+                        'h-6 w-11 rounded-full border-2 flex items-center transition-all px-0.5',
+                        config.short_game ? 'bg-white border-white justify-end' : 'bg-slate-200 border-slate-200 justify-start'
+                      )}>
+                        <div className={cn('h-4 w-4 rounded-full transition-all', config.short_game ? 'bg-sky-500' : 'bg-white')} />
+                      </div>
+                    </button>
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1.5 ml-1">
+                      {config.short_game ? 'Game ends at 15 pts (deuce at 14, cap at 17)' : 'Standard: Game ends at 21 pts'}
+                    </p>
                   </div>
                 </div>
               </div>

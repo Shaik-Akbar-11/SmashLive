@@ -67,6 +67,7 @@ export const MatchService = {
     toss?: any;
     status?: string;
     createdBy?: any;
+    short_game?: boolean;
   }) {
     const matchType = data.match_type || 'singles';
     const playerErr = validatePlayers(matchType, data.players);
@@ -89,6 +90,7 @@ export const MatchService = {
       status:     data.status || defaultStatus,
       scheduledAt,
       createdBy:  data.createdBy || null,
+      short_game: data.short_game || false,
       current_score: [0, 0],
       sets_won:   [0, 0],
       game_scores: [],
@@ -135,25 +137,38 @@ export const MatchService = {
     if (match.status === 'completed') throw new Error('Cannot score a completed match');
     if (match.status === 'scheduled') throw new Error('Match has not started yet — call /start first');
 
-    const score = [...(match.current_score as number[])] as [number, number];
+    // Dynamic scoring constants based on short_game flag
+    const isShort      = (match as any).short_game === true;
+    const GAME_PTS     = isShort ? 15 : 21;
+    const DEUCE_AT     = isShort ? 14 : 20;
+    const WIN_BY       = 2;
+    const SCORE_CAP    = isShort ? 17 : 30; // 15+2 deuce cap vs 30
+
+    const isOver = (a: number, b: number) => {
+      if (a >= GAME_PTS && a - b >= WIN_BY) return true;
+      if (b >= GAME_PTS && b - a >= WIN_BY) return true;
+      if (a === SCORE_CAP || b === SCORE_CAP) return true;
+      return false;
+    };
+    const winner15or21 = (a: number, b: number): 1 | 2 | null => {
+      if (!isOver(a, b)) return null;
+      return a > b ? 1 : 2;
+    };
+
+    const score   = [...(match.current_score as number[])] as [number, number];
     const setsWon = [...(match.sets_won as number[])] as [number, number];
 
-    // Validate: score not already at or past max
-    if (score[0] >= MAX_SCORE || score[1] >= MAX_SCORE) {
+    if (score[0] >= SCORE_CAP || score[1] >= SCORE_CAP) {
       throw new Error('Game is already at the score cap');
     }
-
-    // Validate: game not already over
-    if (isGameOver(score[0], score[1])) {
+    if (isOver(score[0], score[1])) {
       throw new Error('This game is already completed — a new game should start');
     }
 
-    // Award point
     score[side - 1]++;
 
-    // Validate: would result in 30-30?
-    if (score[0] === MAX_SCORE && score[1] === MAX_SCORE) {
-      throw new Error('Score cannot reach 30-30 — invalid state');
+    if (score[0] === SCORE_CAP && score[1] === SCORE_CAP) {
+      throw new Error(`Score cannot reach ${SCORE_CAP}-${SCORE_CAP} — invalid state`);
     }
 
     // Serving switches on every rally won (standard badminton)
@@ -173,7 +188,7 @@ export const MatchService = {
     let matchCompleted = false;
 
     // Check if game is over
-    const winner = gameWinner(score[0], score[1]);
+    const winner = winner15or21(score[0], score[1]);
     if (winner !== null) {
       gameCompleted = true;
       setsWon[winner - 1]++;

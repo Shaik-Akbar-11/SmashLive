@@ -81,6 +81,9 @@ const matchSchema = new mongoose.Schema({
     date:     { type: String },
     time:     { type: String },
   },
+
+  // Short game — conclude at 15 points instead of 21
+  short_game: { type: Boolean, default: false },
 }, { timestamps: true });
 
 export const Match = mongoose.model('Match', matchSchema);
