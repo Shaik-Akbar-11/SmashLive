@@ -92,18 +92,6 @@ app.get('/health', (_req, res) => {
 });
 app.get('/', (_req, res) => res.json({ status: 'SmashLive API running' }));
 
-// POST /test-notify?name=PlayerName — fire a test in-app notification (dev/debug only)
-app.post('/test-notify', (req, res) => {
-  const playerName = (req.query.name as string) || 'Athlete';
-  io.emit('match:reminder', {
-    matchName: 'Test Match',
-    players: [playerName],
-    minutesBefore: 30,
-    message: `🏸 Test notification for ${playerName}!`,
-  });
-  res.json({ ok: true, sentTo: playerName });
-});
-
 // API Routes
 app.use('/api/auth',        authRoutes);
 app.use('/api/players',     playerRoutes);
