@@ -256,6 +256,8 @@ const Court = () => {
               const matchId = match._id || match.id;
               const isLocal = String(matchId).startsWith('local_');
               const link = isLocal ? `/scoring/${matchId}` : `/broadcast/${matchId}`;
+              const myId = profile?._id || profile?.id;
+              const isMyMatch = myId && match.createdBy && String(match.createdBy) === String(myId);
               return (
               <Link to={link} key={i} className="app-card p-4 space-y-2 block active-press">
                 <div className="flex items-center justify-between gap-3">
@@ -264,6 +266,7 @@ const Court = () => {
                       <span className="h-1.5 w-1.5 bg-red-500 rounded-full animate-pulse shrink-0" />
                       <p className="text-[9px] font-black text-slate-400 uppercase truncate">{match.name}</p>
                       {location && <span className="text-[8px] font-bold text-slate-300 uppercase truncate">· {location}</span>}
+                      {isMyMatch && <span className="text-[8px] font-black text-sky-500 uppercase shrink-0">· You</span>}
                     </div>
                     <div className="flex items-center gap-2">
                       <div className="flex-1 min-w-0">
@@ -272,7 +275,7 @@ const Court = () => {
                       </div>
                       <div className="bg-[#0B1F3A] px-4 py-2 rounded-xl text-center shrink-0 min-w-[64px]">
                         <p className="text-lg font-black font-mono text-sky-400 leading-none">{score[0]}-{score[1]}</p>
-                        <p className="text-[7px] font-black text-sky-600 uppercase mt-0.5">Live</p>
+                        <p className="text-[7px] font-black text-sky-600 uppercase mt-0.5">{match.category || 'Live'}</p>
                       </div>
                     </div>
                   </div>
