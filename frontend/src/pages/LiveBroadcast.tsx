@@ -175,8 +175,8 @@ const LiveBroadcast = () => {
           <div className="flex items-center gap-3 text-[8px] font-bold text-slate-400 uppercase tracking-widest">
             <span>Court {matchData?.court || '--'}</span>
             <span className="h-1 w-1 bg-slate-200 rounded-full" />
-            <span className={cn(isDone ? 'text-slate-400' : 'text-red-500 animate-pulse')}>
-              {isDone ? 'COMPLETED' : 'LIVE BROADCAST'}
+            <span className={cn(isDone ? 'text-slate-700 font-black' : 'text-red-500 animate-pulse')}>
+              {isDone ? '✓ MATCH ENDED' : 'LIVE BROADCAST'}
             </span>
           </div>
         </div>

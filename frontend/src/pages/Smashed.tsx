@@ -140,6 +140,16 @@ const Smashed = () => {
                   <div className="space-y-1.5">
                     <div className="flex items-center gap-2">
                       <Badge className="bg-slate-100 text-slate-500 border-none font-black text-[9px] uppercase px-3 h-6">{item.type}</Badge>
+                      {item.type === 'match' && (
+                        <Badge className={cn(
+                          'border-none font-black text-[9px] uppercase px-3 h-6',
+                          item.status === 'completed' ? 'bg-slate-700 text-white' :
+                          item.status === 'live'      ? 'bg-red-500 text-white' :
+                          'bg-sky-100 text-sky-600'
+                        )}>
+                          {item.status === 'completed' ? '✓ Ended' : item.status === 'live' ? '● Live' : 'Scheduled'}
+                        </Badge>
+                      )}
                       <span className="text-[9px] font-black text-slate-300 uppercase">ID: {String(item.id).slice(-6).toUpperCase()}</span>
                     </div>
                     <h2 className="text-xl font-black uppercase italic leading-tight text-[#0B1F3A]">{item.name}</h2>
