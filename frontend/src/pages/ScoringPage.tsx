@@ -268,20 +268,25 @@ const ScoringPage = () => {
   };
 
   const handleEnd = async () => {
-    if (!matchId || !confirm('End this match?')) return;
+    if (!matchId || !confirm('End this match? The current leader will be declared the winner.')) return;
     if (!isLocalMatch) {
       try {
         const res = await MatchAPI.end(matchId);
         setMatchData(res);
         localStorage.setItem(matchId, JSON.stringify(res));
-        navigate('/smashed');
+        showSuccess('Match ended!');
+        return; // stay on page — winner banner will show
+      } catch (err: any) {
+        showError(err.message || 'Could not end match');
         return;
-      } catch {}
+      }
     }
-    const updated = { ...matchData, status: 'completed' };
+    const setsWon = matchData?.sets_won || [0, 0];
+    const winner = setsWon[0] > setsWon[1] ? 1 : setsWon[1] > setsWon[0] ? 2 : null;
+    const updated = { ...matchData, status: 'completed', winner };
     setMatchData(updated);
     localStorage.setItem(matchId, JSON.stringify(updated));
-    navigate('/smashed');
+    showSuccess('Match ended!');
   };
 
   const getSideName = (side: 1 | 2): string => {
@@ -452,7 +457,10 @@ const ScoringPage = () => {
 
         {/* Winner banner */}
         {isDone && (
-          <div className="bg-yellow-50 border border-yellow-200 rounded-3xl p-6 text-center space-y-2">
+          <div className="bg-yellow-50 border-2 border-yellow-300 rounded-3xl p-6 text-center space-y-3">
+            <div className="inline-flex items-center gap-2 bg-slate-700 text-white px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest mb-2">
+              ✓ Match Ended
+            </div>
             <Trophy className="h-10 w-10 text-yellow-500 mx-auto" />
             <p className="font-black text-[#0B1F3A] text-lg uppercase italic">
               {getSideName(matchData.winner as 1 | 2)} Wins!
@@ -460,6 +468,11 @@ const ScoringPage = () => {
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
               {setsWon[0]}–{setsWon[1]} in games
             </p>
+            <Button
+              onClick={() => navigate('/smashed')}
+              className="w-full h-11 rounded-2xl bg-[#0B1F3A] text-white font-black text-[10px] uppercase mt-2">
+              View in Archive
+            </Button>
           </div>
         )}
 
