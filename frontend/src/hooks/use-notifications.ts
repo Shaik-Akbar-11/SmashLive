@@ -10,42 +10,58 @@ function dispatch(message: string, type: string) {
   }));
 }
 
-export function useNotifications() {
-  const savedProfile = JSON.parse(localStorage.getItem('userProfile') || '{}');
-  const myName = (savedProfile?.name || '').toLowerCase();
+// Always read fresh from localStorage so we never use a stale name
+function getMyName(): string {
+  try {
+    const p = JSON.parse(localStorage.getItem('userProfile') || '{}');
+    return (p?.name || '').toLowerCase().trim();
+  } catch {
+    return '';
+  }
+}
 
+function isMe(str: string): boolean {
+  const name = getMyName();
+  if (!name) return false;
+  return str.toLowerCase().includes(name);
+}
+
+function playerListIncludesMe(players: string[]): boolean {
+  const name = getMyName();
+  if (!name) return false;
+  return players.some(p => p.toLowerCase().includes(name) || name.includes(p.toLowerCase()));
+}
+
+export function useNotifications() {
   // Match reminder — 30 min and 5 min before
   useSocketEvent('match:reminder', (payload: any) => {
-    const players: string[] = (payload.players || []).map((n: string) => n.toLowerCase());
-    if (!myName || !players.some(p => p.includes(myName) || myName.includes(p))) return;
+    const players: string[] = payload.players || [];
+    if (!playerListIncludesMe(players)) return;
     const mins = payload.minutesBefore || 30;
     dispatch(`⏰ "${payload.matchName}" starts in ${mins} minutes! Get ready.`, 'match_reminder');
   });
 
   // New match involving me
   useSocketEvent('feed:match_created', (match: any) => {
-    const str = JSON.stringify(match.players || '').toLowerCase();
-    if (myName && str.includes(myName)) {
-      dispatch(`Your match "${match.name || 'New Match'}" has started!`, 'match_started');
-    }
+    const str = JSON.stringify(match.players || '');
+    if (!isMe(str)) return;
+    dispatch(`Your match "${match.name || 'New Match'}" has started!`, 'match_started');
   });
 
   // Match I'm in completed
   useSocketEvent('feed:match_completed', (match: any) => {
-    const str = JSON.stringify(match.players || '').toLowerCase();
-    if (myName && str.includes(myName)) {
-      const winner = match.winner === 1
-        ? (match.players?.p1?.name || match.players?.sideA?.[0]?.name)
-        : (match.players?.p2?.name || match.players?.sideB?.[0]?.name);
-      dispatch(`Match complete! ${winner || 'Result'} wins 🏆`, 'match_completed');
-    }
+    const str = JSON.stringify(match.players || '');
+    if (!isMe(str)) return;
+    const winner = match.winner === 1
+      ? (match.players?.p1?.name || match.players?.sideA?.[0]?.name)
+      : (match.players?.p2?.name || match.players?.sideB?.[0]?.name);
+    dispatch(`Match complete! ${winner || 'Result'} wins 🏆`, 'match_completed');
   });
 
   // Game/match complete during scoring
   useSocketEvent('feed:score_update', (payload: any) => {
-    if (!myName) return;
-    const str = JSON.stringify(payload.players || '').toLowerCase();
-    if (!str.includes(myName)) return;
+    const str = JSON.stringify(payload.players || '');
+    if (!isMe(str)) return;
     const sc = payload.current_score;
     if (payload.gameCompleted && sc) {
       dispatch(`Game complete! Score: ${sc[0]}–${sc[1]}`, 'score');
@@ -57,15 +73,16 @@ export function useNotifications() {
 
   // Tournament next-round match ready
   useSocketEvent('tournament:next_match', (payload: any) => {
-    const players: string[] = (payload.players || []).map((n: string) => n.toLowerCase());
-    if (!myName || !players.some(p => p.includes(myName) || myName.includes(p))) return;
+    const players: string[] = payload.players || [];
+    if (!playerListIncludesMe(players)) return;
 
     if (payload.forfeit) {
       dispatch(`✅ Opponent forfeited — you advance in ${payload.tournamentName}!`, 'tournament_next_match');
       return;
     }
 
-    const opponent = players.find(p => !p.includes(myName) && !myName.includes(p)) || 'your opponent';
+    const myName = getMyName();
+    const opponent = players.find(p => !p.toLowerCase().includes(myName) && !myName.includes(p.toLowerCase())) || 'your opponent';
     const location = payload.venue || payload.city ? ` · ${payload.venue || payload.city}` : '';
     const date = payload.date ? ` · ${payload.date}` : '';
     dispatch(
