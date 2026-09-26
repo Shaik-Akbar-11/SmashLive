@@ -73,23 +73,39 @@ const LiveMatch = () => {
   });
 
   const [starting, setStarting] = useState<string | null>(null);
+  const [now, setNow] = useState(new Date());
+
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 30000);
+    return () => clearInterval(t);
+  }, []);
 
   const handleStartMatch = async (matchId: string) => {
     setStarting(matchId);
     try {
       await MatchAPI.start(matchId);
-      // Remove from scheduled, it will appear in live via socket or re-fetch
       setScheduledMatches(prev => prev.filter(m => (m._id || m.id) !== matchId));
       navigate(`/scoring/${matchId}`);
     } catch {
-      // If start fails (e.g. already live), just navigate
       navigate(`/scoring/${matchId}`);
     } finally {
       setStarting(null);
     }
   };
+
+  const isEligible = (match: any): boolean => {
     if (!match.scheduledAt) return true;
-    return new Date(match.scheduledAt) <= new Date();
+    return new Date(match.scheduledAt) <= now;
+  };
+
+  const countdown = (match: any): string => {
+    if (!match.scheduledAt) return '';
+    const diff = new Date(match.scheduledAt).getTime() - now.getTime();
+    if (diff <= 0) return '';
+    const h = Math.floor(diff / 3600000);
+    const m = Math.floor((diff % 3600000) / 60000);
+    if (h > 0) return `in ${h}h ${m}m`;
+    return `in ${m}m`;
   };
 
   const formatScheduled = (match: any): string => {
@@ -231,19 +247,24 @@ const LiveMatch = () => {
                     <div className="pt-3 border-t border-slate-50 flex gap-3">
                       <Button onClick={() => navigate(`/scoring/${match.id}`)} variant="outline"
                         className="flex-1 h-11 rounded-xl font-black text-[10px] uppercase border-slate-200 bg-white">
-                        View Match
+                        View
                       </Button>
-                      {eligible && (
-                        <Button
-                          onClick={() => handleStartMatch(match.id)}
-                          disabled={starting === match.id}
-                          className="flex-1 h-11 rounded-xl bg-[#0B1F3A] text-white font-black text-[10px] uppercase gap-2 hover:bg-sky-500 transition-all">
-                          {starting === match.id
-                            ? <Loader2 className="h-4 w-4 animate-spin" />
-                            : <><Play className="h-4 w-4 fill-current" /> Start Match</>
-                          }
-                        </Button>
-                      )}
+                      <Button
+                        onClick={() => eligible && handleStartMatch(match.id)}
+                        disabled={starting === match.id || !eligible}
+                        className={cn(
+                          'flex-1 h-11 rounded-xl font-black text-[10px] uppercase gap-2 transition-all',
+                          eligible
+                            ? 'bg-[#0B1F3A] text-white hover:bg-sky-500'
+                            : 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                        )}>
+                        {starting === match.id
+                          ? <Loader2 className="h-4 w-4 animate-spin" />
+                          : eligible
+                            ? <><Play className="h-4 w-4 fill-current" /> Start Now</>
+                            : <>⏳ Start {countdown(match)}</>
+                        }
+                      </Button>
                     </div>
                   </motion.div>
                 );
