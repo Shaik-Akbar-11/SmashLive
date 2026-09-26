@@ -25,20 +25,30 @@ async function checkAndNotify() {
     const now = new Date();
 
     const windows = [
-      { ms: REMIND_30_MS, flag: 'reminded30', label: '30 minutes' },
-      { ms: REMIND_5_MS,  flag: 'reminded5',  label: '5 minutes'  },
+      { ms: REMIND_30_MS, flag: 'reminded30', label: '30 minutes', msgFn: (name: string) => `⏰ "${name}" starts in 30 minutes! Get ready.` },
+      { ms: REMIND_5_MS,  flag: 'reminded5',  label: '5 minutes',  msgFn: (name: string) => `🏸 "${name}" starts in 5 minutes! Head to the court.` },
+      { ms: 0,            flag: 'remindedNow', label: 'now',       msgFn: (name: string) => `🚨 Time to start "${name}"! Go to Matches → Scheduled to start it.` },
     ];
 
-    for (const { ms, flag, label } of windows) {
-      // Find scheduled matches whose scheduledAt falls within the next `ms` ms
-      // and haven't been reminded yet for this window
-      const cutoff = new Date(now.getTime() + ms);
+    for (const { ms, flag, label, msgFn } of windows) {
+      let upcoming: any[];
 
-      const upcoming = await (Match as any).find({
-        status:      'scheduled',
-        scheduledAt: { $gte: now, $lte: cutoff },
-        [flag]:      { $ne: true },
-      }).lean();
+      if (ms === 0) {
+        // "Time is up" window — scheduledAt is in the past (up to 15 min ago) and still scheduled
+        const cutoff = new Date(now.getTime() - 15 * 60 * 1000);
+        upcoming = await (Match as any).find({
+          status:       'scheduled',
+          scheduledAt:  { $gte: cutoff, $lte: now },
+          [flag]:       { $ne: true },
+        }).lean();
+      } else {
+        const cutoff = new Date(now.getTime() + ms);
+        upcoming = await (Match as any).find({
+          status:      'scheduled',
+          scheduledAt: { $gte: now, $lte: cutoff },
+          [flag]:      { $ne: true },
+        }).lean();
+      }
 
       for (const match of upcoming) {
         // Mark as reminded in DB so restarts don't re-send
@@ -60,7 +70,8 @@ async function checkAndNotify() {
           scheduledAt: (match as any).scheduledAt,
           minutesBefore: ms / 60000,
           players: [p1Name, p2Name],
-          message: `🏸 "${matchName}" starts in ${label}! Get ready.`,
+          message: msgFn(matchName),
+          isTimeUp: ms === 0,
         });
 
         console.log(`[Reminder] ${label} alert sent for: ${matchName} (${p1Name} vs ${p2Name})`);

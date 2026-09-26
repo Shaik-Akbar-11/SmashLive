@@ -115,11 +115,7 @@ export const MatchService = {
     if (match.status === 'completed') throw new Error('Match is already completed');
     if (match.status === 'live') throw new Error('Match is already live');
 
-    // Enforce scheduled time — cannot start before scheduledAt
-    if (match.scheduledAt && match.scheduledAt > new Date()) {
-      throw new Error('Match is not eligible to start yet — scheduled time has not arrived');
-    }
-
+    // No time enforcement — creator starts it when ready
     match.status = 'live';
     match.last_update = new Date();
     return await match.save();

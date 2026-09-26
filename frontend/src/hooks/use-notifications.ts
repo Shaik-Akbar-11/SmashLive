@@ -33,12 +33,11 @@ function playerListIncludesMe(players: string[]): boolean {
 }
 
 export function useNotifications() {
-  // Match reminder — 30 min and 5 min before
+  // Match reminder — 30 min, 5 min before, and time-up alert
   useSocketEvent('match:reminder', (payload: any) => {
     const players: string[] = payload.players || [];
     if (!playerListIncludesMe(players)) return;
-    const mins = payload.minutesBefore || 30;
-    dispatch(`⏰ "${payload.matchName}" starts in ${mins} minutes! Get ready.`, 'match_reminder');
+    dispatch(payload.message || `⏰ "${payload.matchName}" starts in ${payload.minutesBefore || 30} minutes!`, 'match_reminder');
   });
 
   // New match involving me

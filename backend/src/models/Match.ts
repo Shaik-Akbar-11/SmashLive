@@ -64,8 +64,9 @@ const matchSchema = new mongoose.Schema({
   scheduledAt: { type: Date, default: null },
 
   // Reminder flags — set to true once reminder sent, survives server restarts
-  reminded30: { type: Boolean, default: false },
-  reminded5:  { type: Boolean, default: false },
+  reminded30:  { type: Boolean, default: false },
+  reminded5:   { type: Boolean, default: false },
+  remindedNow: { type: Boolean, default: false },
 
   // Toss
   toss: {
