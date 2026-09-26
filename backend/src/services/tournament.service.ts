@@ -509,3 +509,5 @@ export const TournamentService = {
     }
 
     return saved;
+  },
+};
