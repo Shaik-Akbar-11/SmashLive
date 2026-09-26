@@ -23,6 +23,7 @@ import type { EmailProvider } from './services/email.provider';
 import { startMatchReminderJob, setReminderEmailProvider } from './services/match-reminder.service';
 import { setTournamentEmailProvider } from './services/tournament.service';
 import { setTournamentIo } from './services/tournament.service';
+import { startRegistrationDeadlineJob } from './services/registration-deadline.service';
 // ── Startup validation ───────────────────────────────────────────────────────
 validateConfig();
 
@@ -81,6 +82,9 @@ connectDB();
 
 // Start match reminder job after io is created
 startMatchReminderJob(io);
+
+// Auto-close tournament registrations when deadline passes
+startRegistrationDeadlineJob();
 
 // GET /health
 app.get('/health', (_req, res) => {
