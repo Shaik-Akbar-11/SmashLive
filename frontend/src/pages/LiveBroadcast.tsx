@@ -127,6 +127,10 @@ const LiveBroadcast = () => {
   const gameScores: any[] = matchData?.game_scores || [];
   const isDone  = matchData?.status === 'completed';
 
+  // Check if current user is the creator
+  const myId = (() => { try { return JSON.parse(localStorage.getItem('userProfile') || '{}')._id || ''; } catch { return ''; } })();
+  const isCreator = !!myId && !!matchData?.createdBy && String(matchData.createdBy) === String(myId);
+
   // For completed matches show last game score, not the reset 0-0
   const rawScore = (matchData?.current_score as [number, number]) || [0, 0];
   const lastGame = gameScores[gameScores.length - 1];
@@ -178,6 +182,14 @@ const LiveBroadcast = () => {
         </div>
 
         <div className="flex gap-3">
+          {isCreator && !isDone && (
+            <Button
+              onClick={() => navigate(`/scoring/${id}`)}
+              className="flex-1 h-11 rounded-2xl bg-[#0B1F3A] text-white font-black text-[9px] uppercase tracking-widest gap-2 border-none hover:bg-sky-500 transition-all"
+            >
+              <Zap className="h-4 w-4 fill-current" /> Score Match
+            </Button>
+          )}
           <Button
             onClick={() => setIsFollowing(f => !f)}
             variant="outline"
