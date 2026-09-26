@@ -222,8 +222,8 @@ const LiveBroadcast = () => {
         {/* Scoreboard */}
         <section>
           <PremiumScoreboard
-            p1={{ name: p1Name, country: matchData?.players?.p1?.state || '', flag: '🏳️', sets: [setsWon[0]] }}
-            p2={{ name: p2Name, country: matchData?.players?.p2?.state || '', flag: '🏳️', sets: [setsWon[1]] }}
+            p1={{ name: p1Name, country: matchData?.players?.p1?.state || '', flag: '🏳️', sets: [Number(Array.isArray(setsWon) ? setsWon[0] : 0) || 0] }}
+            p2={{ name: p2Name, country: matchData?.players?.p2?.state || '', flag: '🏳️', sets: [Number(Array.isArray(setsWon) ? setsWon[1] : 0) || 0] }}
             currentScore={score}
             serving={serving}
           />
