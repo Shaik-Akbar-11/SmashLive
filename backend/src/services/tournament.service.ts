@@ -3,62 +3,13 @@ import { Tournament } from '../models/Tournament';
 import { Participant } from '../models/Participant';
 import { Match } from '../models/Match';
 import { User } from '../models/User';
-import type { EmailProvider } from './email.provider';
 
 // Ranking points for tournament results
 const TOURNAMENT_POINTS = { winner: 50, runnerUp: 25, semiFinal: 10, quarterFinal: 5 };
 
-// Email provider injected from server.ts
-let _emailProvider: EmailProvider | null = null;
-export function setTournamentEmailProvider(p: EmailProvider) { _emailProvider = p; }
-
 // Socket.IO instance injected from server.ts
 let _io: any = null;
 export function setTournamentIo(io: any) { _io = io; }
-
-// ── Email: next-round match notification ──────────────────────────────────────
-async function sendNextMatchEmail(
-  email: string,
-  playerName: string,
-  opponentName: string,
-  roundLabel: string,
-  tournamentName: string,
-  venue?: string,
-  city?: string,
-  date?: string,
-) {
-  if (!_emailProvider || !email) return;
-  const html = `<!DOCTYPE html>
-<html>
-<head><meta charset="UTF-8"></head>
-<body style="font-family:Arial,sans-serif;background:#f4f4f4;padding:32px;margin:0">
-  <div style="max-width:480px;margin:0 auto;background:#fff;border-radius:12px;padding:32px;border-top:4px solid #0EA5E9">
-    <div style="margin-bottom:20px">
-      <span style="font-size:22px;font-weight:900;color:#0B1F3A">Smash<span style="color:#0EA5E9">Live</span></span>
-    </div>
-    <h2 style="color:#0B1F3A;margin:0 0 8px 0;font-size:20px">🏸 Your Next Match is Ready!</h2>
-    <p style="color:#555;margin:0 0 20px 0;font-size:14px">Hey <strong>${playerName}</strong>, you've advanced to the next round!</p>
-    <div style="background:#F0F9FF;border:2px solid #0EA5E9;border-radius:12px;padding:20px;margin-bottom:20px">
-      <p style="margin:0 0 6px 0;font-size:12px;color:#0B1F3A;font-weight:700;text-transform:uppercase">Match Details</p>
-      <p style="margin:4px 0;font-size:16px;font-weight:900;color:#0B1F3A">${tournamentName}</p>
-      <p style="margin:4px 0;font-size:13px;color:#555">Round: <strong>${roundLabel}</strong></p>
-      <p style="margin:4px 0;font-size:13px;color:#555">vs <strong>${opponentName}</strong></p>
-      ${date ? `<p style="margin:8px 0 4px 0;font-size:12px;color:#0EA5E9;font-weight:700">📅 ${date}</p>` : ''}
-      ${venue ? `<p style="margin:4px 0;font-size:12px;color:#777">📍 ${venue}${city ? `, ${city}` : ''}</p>` : (city ? `<p style="margin:4px 0;font-size:12px;color:#777">📍 ${city}</p>` : '')}
-    </div>
-    <p style="color:#aaa;font-size:12px;margin:0">Stay focused and play your best! Good luck 🏆</p>
-    <hr style="border:none;border-top:1px solid #eee;margin:20px 0">
-    <p style="color:#aaa;font-size:11px;margin:0;text-align:center">© SmashLive — The Badminton Network</p>
-  </div>
-</body>
-</html>`;
-  try {
-    await _emailProvider.sendEmail(email, `🏸 Next Match: ${roundLabel} — ${tournamentName}`, html);
-    console.log(`[Tournament] Next-match email sent to ${playerName} <${email}>`);
-  } catch (err: any) {
-    console.error(`[Tournament] Failed to send email to ${email}:`, err?.message);
-  }
-}
 
 function getRoundLabel(round: number, maxRound: number): string {
   const diff = maxRound - round;
@@ -73,7 +24,7 @@ async function notifyNextRoundPlayers(
   nextSlot: any,
   allParticipants: any[],
 ) {
-  if (!nextSlot || !nextSlot.participantA || !nextSlot.participantB) return; // slot not fully populated yet
+  if (!nextSlot || !nextSlot.participantA || !nextSlot.participantB) return;
   const bracket = tournament.bracket as any[];
   const maxRound = Math.max(...bracket.map((m: any) => m.round));
   const label = getRoundLabel(nextSlot.round, maxRound);
@@ -82,28 +33,11 @@ async function notifyNextRoundPlayers(
   const pB = allParticipants.find(p => String(p._id) === String(nextSlot.participantB));
   if (!pA || !pB) return;
 
-  // Find user emails — match by user_id first, fallback by phone/name
-  const getUserEmail = async (participant: any): Promise<{ name: string; email: string | null }> => {
-    if (participant.user_id) {
-      const u = await User.findById(participant.user_id).select('email name').lean();
-      if (u?.email) return { name: u.name, email: u.email };
-    }
-    if (participant.phone) {
-      const u = await User.findOne({ mobile: participant.phone }).select('email name').lean();
-      if (u?.email) return { name: u.name, email: u.email };
-    }
-    return { name: participant.name, email: null };
-  };
-
-  const [infoA, infoB] = await Promise.all([getUserEmail(pA), getUserEmail(pB)]);
   const venue = tournament.venue;
   const city  = tournament.city;
   const date  = tournament.start_date;
 
-  if (infoA.email) await sendNextMatchEmail(infoA.email, infoA.name, pB.name, label, tournament.name, venue, city, date);
-  if (infoB.email) await sendNextMatchEmail(infoB.email, infoB.name, pA.name, label, tournament.name, venue, city, date);
-
-  // In-app bell notification via Socket.IO
+  // In-app bell notification via Socket.IO only
   if (_io) {
     _io.emit('tournament:next_match', {
       tournamentId: String(tournament._id),

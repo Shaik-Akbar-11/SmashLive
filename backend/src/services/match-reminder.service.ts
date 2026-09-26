@@ -128,16 +128,6 @@ async function checkAndNotify() {
           });
         }
 
-        // Email notifications
-        const p1Email = emailByName[p1Name.toLowerCase()];
-        const p2Email = emailByName[p2Name.toLowerCase()];
-
-        // Only send email for 30min reminder, not 5min (too close)
-        if (ms === REMIND_30_MS) {
-          if (p1Email) await notifyPlayer(p1Email, p1Name, matchName, p2Name, scheduledAt, venue);
-          if (p2Email) await notifyPlayer(p2Email, p2Name, matchName, p1Name, scheduledAt, venue);
-        }
-
         console.log(`[Reminder] ${label} alert for: ${matchName}`);
       }
     }
