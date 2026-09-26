@@ -63,6 +63,10 @@ const matchSchema = new mongoose.Schema({
   // Scheduled date/time (ISO string stored as Date)
   scheduledAt: { type: Date, default: null },
 
+  // Reminder flags — set to true once reminder sent, survives server restarts
+  reminded30: { type: Boolean, default: false },
+  reminded5:  { type: Boolean, default: false },
+
   // Toss
   toss: {
     winner:   { type: String },        // 'sideA' | 'sideB'
