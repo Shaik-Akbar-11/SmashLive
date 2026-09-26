@@ -138,22 +138,25 @@ export const MatchService = {
     if (match.status === 'scheduled') throw new Error('Match has not started yet — call /start first');
 
     // Dynamic scoring constants based on short_game flag
-    const isShort      = (match as any).short_game === true;
-    const GAME_PTS     = isShort ? 15 : 21;
-    const DEUCE_AT     = isShort ? 14 : 20;
-    const WIN_BY       = 2;
-    const SCORE_CAP    = isShort ? 17 : 30; // 15+2 deuce cap vs 30
+    const isShort = (match as any).short_game === true;
 
     const isOver = (a: number, b: number) => {
-      if (a >= GAME_PTS && a - b >= WIN_BY) return true;
-      if (b >= GAME_PTS && b - a >= WIN_BY) return true;
-      if (a === SCORE_CAP || b === SCORE_CAP) return true;
+      if (isShort) {
+        // Short game: first to 15 wins, no deuce, no cap beyond 15
+        return a >= 15 || b >= 15;
+      }
+      // Standard: win at 21, deuce at 20-20, cap at 30
+      if (a >= 21 && a - b >= 2) return true;
+      if (b >= 21 && b - a >= 2) return true;
+      if (a === 30 || b === 30) return true;
       return false;
     };
     const winner15or21 = (a: number, b: number): 1 | 2 | null => {
       if (!isOver(a, b)) return null;
       return a > b ? 1 : 2;
     };
+
+    const SCORE_CAP = isShort ? 15 : 30;
 
     const score   = [...(match.current_score as number[])] as [number, number];
     const setsWon = [...(match.sets_won as number[])] as [number, number];

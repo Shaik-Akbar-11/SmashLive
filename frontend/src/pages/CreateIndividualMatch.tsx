@@ -560,7 +560,7 @@ const CreateIndividualMatch = () => {
                       </div>
                     </button>
                     <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1.5 ml-1">
-                      {config.short_game ? 'Game ends at 15 pts (deuce at 14, cap at 17)' : 'Standard: Game ends at 21 pts'}
+                      {config.short_game ? 'Game ends at 15 pts — first to 15 wins' : 'Standard: Game ends at 21 pts'}
                     </p>
                   </div>
                 </div>
