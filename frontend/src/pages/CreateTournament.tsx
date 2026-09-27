@@ -186,7 +186,15 @@ const CreateTournament = () => {
                     value={['4','8','16','32','64','128'].includes(form.max_participants) ? form.max_participants : 'custom'}
                     onValueChange={v => set('max_participants', v === 'custom' ? '' : v)}
                   >
-                    <SelectTrigger className="h-12 rounded-xl bg-slate-50 border-slate-100 font-bold"><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="h-12 rounded-xl bg-slate-50 border-slate-100 font-bold">
+                      <SelectValue>
+                        {['4','8','16','32','64','128'].includes(form.max_participants)
+                          ? `${form.max_participants} Players`
+                          : form.max_participants
+                            ? `${form.max_participants} Players (Custom)`
+                            : 'Custom'}
+                      </SelectValue>
+                    </SelectTrigger>
                     <SelectContent className="rounded-xl">
                       {['4','8','16','32','64','128'].map(n => (
                         <SelectItem key={n} value={n}>{n} Players</SelectItem>
