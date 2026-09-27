@@ -14,32 +14,59 @@ interface Notification {
   link?: string;
 }
 
+const STORAGE_KEY = 'smashlive_notifications';
+
+const loadStored = (): Notification[] => {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return [];
+    return JSON.parse(raw).map((n: any) => ({ ...n, time: new Date(n.time) }));
+  } catch { return []; }
+};
+
+const saveStored = (notifs: Notification[]) => {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(notifs)); } catch {}
+};
+
 const Navbar = () => {
   const [isScrolled, setIsScrolled]     = useState(false);
   const [isLoggedIn, setIsLoggedIn]     = useState(false);
   const [userName, setUserName]         = useState("Athlete");
   const [userImage, setUserImage]       = useState("");
   const [showNotifs, setShowNotifs]     = useState(false);
-  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [notifications, setNotifications] = useState<Notification[]>(loadStored);
   const location = useLocation();
   const navigate = useNavigate();
   const panelRef = useRef<HTMLDivElement>(null);
 
   const unread = notifications.filter(n => !n.read).length;
 
+  const updateNotifs = (next: Notification[]) => {
+    setNotifications(next);
+    saveStored(next);
+  };
+
   const addNotification = (msg: string, type: Notification['type'], link?: string) => {
-    setNotifications(prev => [{
-      id: String(Date.now()),
-      message: msg,
-      time: new Date(),
-      read: false,
-      type,
-      link,
-    }, ...prev].slice(0, 10));
+    setNotifications(prev => {
+      const next = [{
+        id: String(Date.now()),
+        message: msg,
+        time: new Date(),
+        read: false,
+        type,
+        link,
+      }, ...prev].slice(0, 20);
+      saveStored(next);
+      return next;
+    });
   };
 
   const markAllRead = () => {
-    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    setNotifications(prev => {
+      const next = prev.map(n => ({ ...n, read: true }));
+      saveStored(next);
+      return next;
+    });
   };
 
   // Listen for in-app notification events from use-notifications
