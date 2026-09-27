@@ -179,15 +179,25 @@ const Tournaments = () => {
                         </div>
                       )}
 
-                      {/* Non-creator: View button */}
+                      {/* Non-creator: View + Register buttons */}
                       {!canManage && (
-                        <Button
-                          onClick={() => navigate(`/tournament/${t.id}`)}
-                          variant="outline"
-                          className="h-12 px-6 rounded-2xl font-black text-[10px] uppercase tracking-widest border-slate-200 self-end md:self-center"
-                        >
-                          View <ChevronRight className="ml-1 h-4 w-4" />
-                        </Button>
+                        <div className="flex items-center gap-3 self-end md:self-center">
+                          {t.status === 'registration_open' && t.slug && (
+                            <Button
+                              onClick={() => navigate(`/register/${t.slug}`)}
+                              className="h-12 px-6 rounded-2xl font-black text-[10px] uppercase tracking-widest bg-green-500 hover:bg-green-600 text-white border-none shadow-md active:scale-95 transition-all gap-2"
+                            >
+                              <Users className="h-4 w-4" /> Register
+                            </Button>
+                          )}
+                          <Button
+                            onClick={() => navigate(`/tournament/${t.id}`)}
+                            variant="outline"
+                            className="h-12 px-6 rounded-2xl font-black text-[10px] uppercase tracking-widest border-slate-200"
+                          >
+                            View <ChevronRight className="ml-1 h-4 w-4" />
+                          </Button>
+                        </div>
                       )}
                     </div>
 
