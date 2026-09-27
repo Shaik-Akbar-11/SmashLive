@@ -25,27 +25,43 @@ async function checkAndNotify() {
     const now = new Date();
 
     const windows = [
-      { ms: REMIND_30_MS, flag: 'reminded30', label: '30 minutes', msgFn: (name: string) => `⏰ "${name}" starts in 30 minutes! Get ready.` },
-      { ms: REMIND_5_MS,  flag: 'reminded5',  label: '5 minutes',  msgFn: (name: string) => `🏸 "${name}" starts in 5 minutes! Head to the court.` },
-      { ms: 0,            flag: 'remindedNow', label: 'now',       msgFn: (name: string) => `🚨 Time to start "${name}"! Go to Matches → Scheduled to start it.` },
+      {
+        ms: REMIND_30_MS, flag: 'reminded30', label: '30 minutes',
+        msgFn: (name: string) => `⏰ "${name}" starts in 30 minutes! Get ready.`,
+        // Only matches between 5 min and 30 min away
+        lowerMs: REMIND_5_MS,
+      },
+      {
+        ms: REMIND_5_MS, flag: 'reminded5', label: '5 minutes',
+        msgFn: (name: string) => `🏸 "${name}" starts in 5 minutes! Head to the court.`,
+        // Only matches between now and 5 min away
+        lowerMs: 0,
+      },
+      {
+        ms: 0, flag: 'remindedNow', label: 'now',
+        msgFn: (name: string) => `🚨 Time to start "${name}"! Go to Matches → Scheduled to start it.`,
+        lowerMs: -1,
+      },
     ];
 
-    for (const { ms, flag, label, msgFn } of windows) {
+    for (const { ms, flag, label, msgFn, lowerMs } of windows) {
       let upcoming: any[];
 
       if (ms === 0) {
-        // "Time is up" window — scheduledAt is in the past (up to 15 min ago) and still scheduled
+        // "Time is up" — scheduledAt is in the past (up to 15 min ago)
         const cutoff = new Date(now.getTime() - 15 * 60 * 1000);
         upcoming = await (Match as any).find({
-          status:       'scheduled',
-          scheduledAt:  { $gte: cutoff, $lte: now },
-          [flag]:       { $ne: true },
+          status:      'scheduled',
+          scheduledAt: { $gte: cutoff, $lte: now },
+          [flag]:      { $ne: true },
         }).lean();
       } else {
-        const cutoff = new Date(now.getTime() + ms);
+        // Upper bound: now + ms, Lower bound: now + lowerMs (exclusive — don't overlap next window)
+        const upperBound = new Date(now.getTime() + ms);
+        const lowerBound = new Date(now.getTime() + lowerMs);
         upcoming = await (Match as any).find({
           status:      'scheduled',
-          scheduledAt: { $gte: now, $lte: cutoff },
+          scheduledAt: { $gt: lowerBound, $lte: upperBound },
           [flag]:      { $ne: true },
         }).lean();
       }
