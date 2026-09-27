@@ -161,6 +161,7 @@ const Court = () => {
           <SmashRating
             rating={stats?.rankingPoints || profile?.rankingPoints || 0}
             rank={userRank ?? undefined}
+            ratingChange={stats?.ratingChange}
             level={(() => {
               const pts = stats?.rankingPoints ?? profile?.rankingPoints ?? 0;
               const thresholds = [0, 100, 250, 500, 1000, 2000, 3500, 5000, 7000, 10000];

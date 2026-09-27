@@ -2,7 +2,7 @@ import React from 'react';
 import { Zap, Trophy, TrendingUp } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 
-const SmashRating = ({ rating = 0, level = 1, xp = 0, rank }: { rating?: number; level?: number; xp?: number; rank?: number | string }) => {
+const SmashRating = ({ rating = 0, level = 1, xp = 0, rank, ratingChange }: { rating?: number; level?: number; xp?: number; rank?: number | string; ratingChange?: number }) => {
   return (
     <div className="bg-[#0B1F3A] rounded-2xl p-4 text-white relative overflow-hidden shadow-xl">
       <Zap className="absolute -right-4 -bottom-4 h-24 w-24 text-sky-500 opacity-10 rotate-12" />
@@ -12,9 +12,11 @@ const SmashRating = ({ rating = 0, level = 1, xp = 0, rank }: { rating?: number;
           <p className="text-[10px] font-black text-sky-400 uppercase tracking-widest">Smash Rating</p>
           <div className="flex items-baseline gap-2">
             <h2 className="text-3xl font-black italic">{rating}</h2>
-            <span className="text-[10px] font-bold text-green-400 flex items-center">
-              <TrendingUp className="h-3 w-3 mr-0.5" /> +12
-            </span>
+            {ratingChange !== undefined && ratingChange !== 0 && (
+              <span className={`text-[10px] font-bold flex items-center ${ratingChange > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                <TrendingUp className="h-3 w-3 mr-0.5" /> {ratingChange > 0 ? `+${ratingChange}` : ratingChange}
+              </span>
+            )}
           </div>
         </div>
         <div className="text-right">

@@ -331,6 +331,12 @@ router.get('/:id/stats', async (req: Request, res: Response) => {
     }
     // ─────────────────────────────────────────────────────────────────────────
 
+    // Rating change from last match (+10 for win, -5 for loss, 0 if no matches)
+    const lastMatch = matchHistory[0];
+    const ratingChange = lastMatch
+      ? (lastMatch.result === 'W' ? 10 : -5)
+      : 0;
+
     res.json({
       user,
       stats: {
@@ -345,6 +351,7 @@ router.get('/:id/stats', async (req: Request, res: Response) => {
         smashes,
         nets,
         errors,
+        ratingChange,
       },
       badges,
       matchHistory,
