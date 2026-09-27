@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useNotifications } from "@/hooks/use-notifications";
 import { startKeepAlive } from "@/hooks/use-keep-alive";
@@ -44,7 +44,41 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
 const AppInner = () => {
   useNotifications();
+  const location = useLocation();
+
+  // Dynamic page title based on route
   useEffect(() => {
+    const path = location.pathname;
+    const titles: Record<string, string> = {
+      '/':                   'SmashLive',
+      '/login':              'Login | SmashLive',
+      '/onboarding':         'Onboarding | SmashLive',
+      '/dashboard':          'Dashboard | SmashLive',
+      '/live-match/active':  'Matches | SmashLive',
+      '/live-match/create':  'New Match | SmashLive',
+      '/tournaments':        'Tournaments | SmashLive',
+      '/tournaments/create': 'Create Tournament | SmashLive',
+      '/players':            'Players | SmashLive',
+      '/player/me':          'My Profile | SmashLive',
+      '/rankings':           'Rankings | SmashLive',
+      '/news':               'News | SmashLive',
+      '/broadcast/create':   'Create Broadcast | SmashLive',
+      '/broadcast/center':   'Broadcast Center | SmashLive',
+      '/smashed':            'Match History | SmashLive',
+      '/social':             'Social | SmashLive',
+      '/my-circuits':        'My Circuits | SmashLive',
+    };
+    // Exact match first, then prefix match for dynamic routes
+    const title = titles[path]
+      || (path.startsWith('/tournament/') ? 'Tournament | SmashLive'
+        : path.startsWith('/broadcast/')  ? 'Live Match | SmashLive'
+        : path.startsWith('/scoring/')    ? 'Scoring | SmashLive'
+        : path.startsWith('/player/')     ? 'Player Profile | SmashLive'
+        : path.startsWith('/match/')      ? 'Match Scorecard | SmashLive'
+        : path.startsWith('/register/')   ? 'Register | SmashLive'
+        : 'SmashLive');
+    document.title = title;
+  }, [location.pathname]);
     startKeepAlive();
     // Clean up stale local match cache (older than 24h)
     const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
