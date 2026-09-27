@@ -79,6 +79,8 @@ const AppInner = () => {
         : 'SmashLive');
     document.title = title;
   }, [location.pathname]);
+
+  useEffect(() => {
     startKeepAlive();
     // Clean up stale local match cache (older than 24h)
     const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
