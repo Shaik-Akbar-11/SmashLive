@@ -2,6 +2,7 @@ import React from 'react';
 import { Trophy, MapPin, Calendar } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { useNavigate } from 'react-router-dom';
 
 interface TournamentSectionProps {
   tournaments?: Array<{
@@ -32,6 +33,8 @@ const RESULT_COLOR: Record<string, string> = {
 };
 
 const TournamentSection = ({ tournaments = [], matchHistory = [] }: TournamentSectionProps) => {
+  const navigate = useNavigate();
+
   if (tournaments.length === 0 && matchHistory.length === 0) {
     return (
       <div className="py-32 text-center bg-white rounded-[2.5rem] border-2 border-dashed border-slate-100 flex flex-col items-center justify-center gap-4">
@@ -53,7 +56,14 @@ const TournamentSection = ({ tournaments = [], matchHistory = [] }: TournamentSe
         <div className="space-y-3">
           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Recent Matches</p>
           {matchHistory.map((m, i) => (
-            <div key={m._id || i} className="bg-white border border-slate-100 rounded-2xl p-4 flex items-center gap-4 shadow-sm">
+            <div
+              key={m._id || i}
+              onClick={() => m._id && navigate(`/broadcast/${m._id}`)}
+              className={cn(
+                'bg-white border border-slate-100 rounded-2xl p-4 flex items-center gap-4 shadow-sm transition-colors',
+                m._id ? 'cursor-pointer hover:border-sky-200 hover:bg-sky-50/30' : ''
+              )}
+            >
               <div className={cn(
                 'h-10 w-10 shrink-0 rounded-xl flex items-center justify-center font-black text-white text-sm',
                 m.result === 'W' ? 'bg-green-500' : 'bg-red-400'
@@ -82,7 +92,14 @@ const TournamentSection = ({ tournaments = [], matchHistory = [] }: TournamentSe
         <div className="space-y-3">
           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Tournaments</p>
           {tournaments.map((t, i) => (
-            <div key={t._id || i} className="bg-white border border-slate-100 rounded-2xl p-4 space-y-2 shadow-sm">
+            <div
+              key={t._id || i}
+              onClick={() => t._id && navigate(`/tournament/${t._id}`)}
+              className={cn(
+                'bg-white border border-slate-100 rounded-2xl p-4 space-y-2 shadow-sm transition-colors',
+                t._id ? 'cursor-pointer hover:border-sky-200 hover:bg-sky-50/30' : ''
+              )}
+            >
               <div className="flex items-center justify-between gap-2">
                 <p className="font-black text-[#0B1F3A] uppercase text-xs truncate flex-1">{t.name}</p>
                 <Badge className={cn('text-white border-none text-[8px] font-black uppercase shrink-0', RESULT_COLOR[t.result || ''] || 'bg-slate-400')}>
