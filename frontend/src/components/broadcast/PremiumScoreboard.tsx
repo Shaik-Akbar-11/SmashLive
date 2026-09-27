@@ -53,7 +53,7 @@ const PremiumScoreboard = ({ p1, p2, currentScore, serving }: ScoreboardProps) =
             >
               {currentScore[0]}
             </motion.span>
-            <div className="h-8 w-0.5 bg-slate-100 rotate-12 rounded-full" />
+            <span className="text-3xl font-black text-slate-200 leading-none">-</span>
             <motion.span 
               key={currentScore[1]}
               initial={{ scale: 1.2, opacity: 0 }}
@@ -73,7 +73,7 @@ const PremiumScoreboard = ({ p1, p2, currentScore, serving }: ScoreboardProps) =
               return (
                 <div className="bg-slate-50 border border-slate-100 rounded-lg px-2 py-0.5 flex gap-2 items-center">
                   <span className={cn("text-[10px] font-black", p1Won > p2Won ? "text-sky-600" : "text-slate-400")}>{p1Won}</span>
-                  <span className="text-[8px] font-black opacity-20">/</span>
+                  <span className="text-[8px] font-black opacity-40">-</span>
                   <span className={cn("text-[10px] font-black", p2Won > p1Won ? "text-sky-600" : "text-slate-400")}>{p2Won}</span>
                 </div>
               );
