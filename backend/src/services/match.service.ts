@@ -200,8 +200,10 @@ export const MatchService = {
       const gameScoreEntry = { scoreA: score[0], scoreB: score[1], winner };
       (match.game_scores as any[]).push(gameScoreEntry);
 
-      // Check match winner
-      if (setsWon[winner - 1] >= GAMES_TO_WIN) {
+      // Check match winner — use match's total_sets (1 set=win 1, 3 sets=win 2, 5 sets=win 3)
+      const totalSets  = (match as any).total_sets || 3;
+      const gamesToWin = Math.ceil(totalSets / 2);
+      if (setsWon[winner - 1] >= gamesToWin) {
         matchCompleted = true;
         match.status = 'completed';
         match.winner = winner;
