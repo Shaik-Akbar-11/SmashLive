@@ -231,12 +231,27 @@ const LiveBroadcast = () => {
 
         {/* Game score history */}
         {gameScores.length > 0 && (
-          <section className="flex gap-2 flex-wrap">
-            {gameScores.map((g: any, i: number) => (
-              <div key={i} className="bg-white border border-slate-100 rounded-xl px-3 py-1.5 text-[9px] font-black text-slate-500 uppercase shadow-sm">
-                Game {i + 1}: {g.scoreA}–{g.scoreB}
-              </div>
-            ))}
+          <section className="space-y-2">
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">
+              {isDone ? 'Final Scores' : 'Game Scores'}
+            </p>
+            <div className="flex gap-2 flex-wrap">
+              {gameScores.map((g: any, i: number) => {
+                const diff = Math.abs(g.scoreA - g.scoreB);
+                const aWon = g.scoreA > g.scoreB;
+                return (
+                  <div key={i} className="bg-white border border-slate-100 rounded-xl px-4 py-2 shadow-sm space-y-0.5">
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Game {i + 1}</p>
+                    <div className="flex items-center gap-2">
+                      <span className={`text-sm font-black ${aWon ? 'text-sky-600' : 'text-slate-400'}`}>{g.scoreA}</span>
+                      <span className="text-[10px] font-black text-slate-200">-</span>
+                      <span className={`text-sm font-black ${!aWon ? 'text-sky-600' : 'text-slate-400'}`}>{g.scoreB}</span>
+                      {isDone && <span className="text-[8px] font-black text-slate-300 uppercase ml-1">(+{diff})</span>}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </section>
         )}
 
