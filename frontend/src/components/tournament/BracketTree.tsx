@@ -40,7 +40,7 @@ function getName(p: any): string {
 }
 
 const MatchCard = ({
-  match, onResult, onBye, onSchedule, onStart, currentParticipantId, isLast
+  match, onResult, onBye, onSchedule, onStart, currentParticipantId, isLast, isFinal
 }: {
   match: BracketSlot;
   onResult?: (matchId: string, winnerId: string) => void;
@@ -49,6 +49,7 @@ const MatchCard = ({
   onStart?: (bracketMatchId: string, linkedMatchId: string) => void;
   currentParticipantId?: string;
   isLast: boolean;
+  isFinal?: boolean;
 }) => {
   const pA = match.participantA;
   const pB = match.participantB;
@@ -58,8 +59,8 @@ const MatchCard = ({
   const isDone = match.status === 'completed' || match.status === 'bye';
   const canScore = !isDone && pA && pB && onResult;
 
-  // Show BYE button only to the player who is IN this match and it's not done
-  const isMyMatch = !isDone && currentParticipantId && (
+  // Show BYE button only to the player who is IN this match, not done, and NOT the final
+  const isMyMatch = !isDone && !isFinal && currentParticipantId && (
     pAId === currentParticipantId || pBId === currentParticipantId
   );
   const canBye = isMyMatch && !!onBye;
@@ -221,6 +222,7 @@ const BracketTree: React.FC<Props> = ({ bracket, onResult, onBye, onSchedule, on
                       onStart={onStart}
                       currentParticipantId={currentParticipantId}
                       isLast={isLastRound}
+                      isFinal={isLastRound}
                     />
                   </div>
                 ))}
