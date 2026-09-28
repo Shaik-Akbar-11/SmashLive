@@ -121,7 +121,12 @@ const LiveBroadcast = () => {
   // ── Derived values ─────────────────────────────────────────────────────
   const p1Name  = matchData?.players?.p1?.name || matchData?.players?.sideA?.[0]?.name || 'Athlete A';
   const p2Name  = matchData?.players?.p2?.name || matchData?.players?.sideB?.[0]?.name || 'Athlete B';
-  const setsWon = (matchData?.sets_won as [number, number]) || [0, 0];
+  const rawSetsWon = matchData?.sets_won;
+  const setsWon: [number, number] = (
+    Array.isArray(rawSetsWon) && rawSetsWon.length >= 2 &&
+    typeof rawSetsWon[0] === 'number' && typeof rawSetsWon[1] === 'number' &&
+    rawSetsWon[0] <= 5 && rawSetsWon[1] <= 5
+  ) ? [rawSetsWon[0], rawSetsWon[1]] : [0, 0];
   const serving = (matchData?.serving as 1 | 2) || 1;
   const events: any[] = matchData?.events || [];
   const gameScores: any[] = matchData?.game_scores || [];

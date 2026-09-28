@@ -66,10 +66,12 @@ const PremiumScoreboard = ({ p1, p2, currentScore, serving }: ScoreboardProps) =
           
           <div className="flex gap-1.5 mt-3">
             {(() => {
-              // Safely extract single games-won count for each side
               const p1Won = Number(Array.isArray(p1.sets) ? p1.sets[0] : p1.sets) || 0;
               const p2Won = Number(Array.isArray(p2.sets) ? p2.sets[0] : p2.sets) || 0;
+              // Only show after at least one full game is completed
               if (p1Won === 0 && p2Won === 0) return null;
+              // Sanity check: don't show if combined > 10 (corrupted data)
+              if (p1Won + p2Won > 10) return null;
               return (
                 <div className="bg-slate-50 border border-slate-100 rounded-lg px-2 py-0.5 flex gap-2 items-center">
                   <span className={cn("text-[10px] font-black", p1Won > p2Won ? "text-sky-600" : "text-slate-400")}>{p1Won}</span>
