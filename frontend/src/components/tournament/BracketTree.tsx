@@ -12,6 +12,9 @@ interface BracketSlot {
   status: string;
   scoreA?: number[];
   scoreB?: number[];
+  scheduledAt?: string;
+  court?: string;
+  matchId?: string;
 }
 
 interface Props {
@@ -19,6 +22,7 @@ interface Props {
   onResult?: (matchId: string, winnerId: string) => void;
   onBye?: (matchId: string) => void;
   onSchedule?: (matchId: string) => void;
+  onStart?: (bracketMatchId: string, linkedMatchId: string) => void;
   currentParticipantId?: string;
 }
 
@@ -36,12 +40,13 @@ function getName(p: any): string {
 }
 
 const MatchCard = ({
-  match, onResult, onBye, onSchedule, currentParticipantId, isLast
+  match, onResult, onBye, onSchedule, onStart, currentParticipantId, isLast
 }: {
   match: BracketSlot;
   onResult?: (matchId: string, winnerId: string) => void;
   onBye?: (matchId: string) => void;
   onSchedule?: (matchId: string) => void;
+  onStart?: (bracketMatchId: string, linkedMatchId: string) => void;
   currentParticipantId?: string;
   isLast: boolean;
 }) => {
@@ -139,6 +144,16 @@ const MatchCard = ({
         </button>
       )}
 
+      {/* Start button — creator can start the linked match at any time */}
+      {!isDone && pA && pB && onStart && match.matchId && (
+        <button
+          onClick={() => onStart(String(match._id), String(match.matchId))}
+          className="w-44 text-[8px] font-black text-white bg-[#0B1F3A] hover:bg-sky-500 rounded-xl py-1.5 uppercase tracking-widest transition flex items-center justify-center gap-1"
+        >
+          <span>▶</span> Start Match
+        </button>
+      )}
+
       {/* Show scheduled time if set */}
       {(match as any).scheduledAt && (
         <p className="text-[8px] font-black text-sky-500 uppercase tracking-widest w-44 text-center">
@@ -159,7 +174,7 @@ const MatchCard = ({
   );
 };
 
-const BracketTree: React.FC<Props> = ({ bracket, onResult, onBye, onSchedule, currentParticipantId }) => {
+const BracketTree: React.FC<Props> = ({ bracket, onResult, onBye, onSchedule, onStart, currentParticipantId }) => {
   if (!bracket || bracket.length === 0) return null;
 
   const rounds = [...new Set(bracket.map(m => m.round))].sort((a, b) => a - b);
@@ -203,6 +218,7 @@ const BracketTree: React.FC<Props> = ({ bracket, onResult, onBye, onSchedule, cu
                       onResult={onResult}
                       onBye={onBye}
                       onSchedule={onSchedule}
+                      onStart={onStart}
                       currentParticipantId={currentParticipantId}
                       isLast={isLastRound}
                     />

@@ -305,19 +305,17 @@ const LiveMatch = () => {
                       )}
                       {currentUserId && match.createdBy && String(match.createdBy) === String(currentUserId) && (
                         <Button
-                          onClick={() => eligible && handleStartMatch(match.id)}
-                          disabled={starting === match.id || !eligible}
+                          onClick={() => handleStartMatch(match.id)}
+                          disabled={starting === match.id}
                           className={cn(
                             'flex-1 h-11 rounded-xl font-black text-[10px] uppercase gap-2 transition-all',
-                            eligible
-                              ? 'bg-[#0B1F3A] text-white hover:bg-sky-500'
-                              : 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                            'bg-[#0B1F3A] text-white hover:bg-sky-500'
                           )}>
                           {starting === match.id
                             ? <Loader2 className="h-4 w-4 animate-spin" />
                             : eligible
                               ? <><Play className="h-4 w-4 fill-current" /> Start Now</>
-                              : <>⏳ Start {countdown(match)}</>
+                              : <><Play className="h-4 w-4 fill-current" /> Start Early</>
                           }
                         </Button>
                       )}

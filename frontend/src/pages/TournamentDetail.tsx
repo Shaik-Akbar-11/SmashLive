@@ -9,7 +9,7 @@ import {
   CheckCircle2, XCircle, Clock, RefreshCw
 } from 'lucide-react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { TournamentAPI } from '@/services/api';
+import { TournamentAPI, MatchAPI } from '@/services/api';
 import { showSuccess, showError } from '@/utils/toast';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
@@ -193,6 +193,15 @@ const TournamentDetail = () => {
   }, [id]);
 
   useEffect(() => { load(); }, [load]);
+
+  const handleStartTournamentMatch = async (_bracketMatchId: string, linkedMatchId: string) => {
+    try {
+      await MatchAPI.start(linkedMatchId);
+      navigate(`/scoring/${linkedMatchId}`);
+    } catch {
+      navigate(`/scoring/${linkedMatchId}`);
+    }
+  };
 
   const handleScheduleMatch = async () => {
     if (!scheduleModal || !scheduleForm.date || !scheduleForm.time) {
@@ -459,6 +468,7 @@ const TournamentDetail = () => {
                   onResult={isCreator ? handleResult : undefined}
                   onBye={handleBye}
                   onSchedule={isCreator ? (matchId) => setScheduleModal({ matchId }) : undefined}
+                  onStart={isCreator ? handleStartTournamentMatch : undefined}
                   currentParticipantId={myParticipant ? String(myParticipant._id) : undefined}
                 />
               </div>
