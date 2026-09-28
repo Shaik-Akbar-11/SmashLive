@@ -1,6 +1,6 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
-import { Trophy } from 'lucide-react';
+import { Trophy, Calendar } from 'lucide-react';
 
 interface BracketSlot {
   _id: string;
@@ -18,7 +18,8 @@ interface Props {
   bracket: BracketSlot[];
   onResult?: (matchId: string, winnerId: string) => void;
   onBye?: (matchId: string) => void;
-  currentParticipantId?: string; // the logged-in user's participant _id in this tournament
+  onSchedule?: (matchId: string) => void;
+  currentParticipantId?: string;
 }
 
 function roundLabel(round: number, totalRounds: number): string {
@@ -35,11 +36,12 @@ function getName(p: any): string {
 }
 
 const MatchCard = ({
-  match, onResult, onBye, currentParticipantId, isLast
+  match, onResult, onBye, onSchedule, currentParticipantId, isLast
 }: {
   match: BracketSlot;
   onResult?: (matchId: string, winnerId: string) => void;
   onBye?: (matchId: string) => void;
+  onSchedule?: (matchId: string) => void;
   currentParticipantId?: string;
   isLast: boolean;
 }) => {
@@ -126,6 +128,25 @@ const MatchCard = ({
         </button>
       )}
 
+      {/* Schedule button — only for creator, only if both players known, not done */}
+      {!isDone && pA && pB && onSchedule && (
+        <button
+          onClick={() => onSchedule(String(match._id))}
+          className="w-44 text-[8px] font-black text-sky-600 border border-sky-100 bg-sky-50 hover:bg-sky-100 rounded-xl py-1.5 uppercase tracking-widest transition flex items-center justify-center gap-1"
+        >
+          <Calendar className="h-3 w-3" />
+          {(match as any).scheduledAt ? 'Reschedule' : 'Schedule'}
+        </button>
+      )}
+
+      {/* Show scheduled time if set */}
+      {(match as any).scheduledAt && (
+        <p className="text-[8px] font-black text-sky-500 uppercase tracking-widest w-44 text-center">
+          {new Date((match as any).scheduledAt).toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' })}
+          {(match as any).court && ` · Court ${(match as any).court}`}
+        </p>
+      )}
+
       {/* Connector line to next round */}
       {!isLast && (
         <div className="absolute left-full top-0 bottom-0 w-8 pointer-events-none">
@@ -138,7 +159,7 @@ const MatchCard = ({
   );
 };
 
-const BracketTree: React.FC<Props> = ({ bracket, onResult, onBye, currentParticipantId }) => {
+const BracketTree: React.FC<Props> = ({ bracket, onResult, onBye, onSchedule, currentParticipantId }) => {
   if (!bracket || bracket.length === 0) return null;
 
   const rounds = [...new Set(bracket.map(m => m.round))].sort((a, b) => a - b);
@@ -181,6 +202,7 @@ const BracketTree: React.FC<Props> = ({ bracket, onResult, onBye, currentPartici
                       match={match}
                       onResult={onResult}
                       onBye={onBye}
+                      onSchedule={onSchedule}
                       currentParticipantId={currentParticipantId}
                       isLast={isLastRound}
                     />

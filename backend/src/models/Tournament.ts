@@ -2,15 +2,17 @@ import mongoose from 'mongoose';
 
 // A single match slot within the tournament bracket
 const tournamentMatchSchema = new mongoose.Schema({
-  round:        { type: Number, required: true },       // 1 = QF, 2 = SF, 3 = F (knockout) | round number (RR)
-  matchIndex:   { type: Number, required: true },       // position within the round
+  round:        { type: Number, required: true },
+  matchIndex:   { type: Number, required: true },
   participantA: { type: mongoose.Schema.Types.ObjectId, ref: 'Participant', default: null },
   participantB: { type: mongoose.Schema.Types.ObjectId, ref: 'Participant', default: null },
   matchId:      { type: mongoose.Schema.Types.ObjectId, ref: 'Match', default: null },
   winner:       { type: mongoose.Schema.Types.ObjectId, ref: 'Participant', default: null },
   status:       { type: String, enum: ['scheduled', 'live', 'completed', 'bye'], default: 'scheduled' },
-  scoreA:       { type: [Number], default: [] },  // games won by A
-  scoreB:       { type: [Number], default: [] },  // games won by B
+  scoreA:       { type: [Number], default: [] },
+  scoreB:       { type: [Number], default: [] },
+  scheduledAt:  { type: Date, default: null },
+  court:        { type: String, default: null },
 }, { _id: true });
 
 const tournamentSchema = new mongoose.Schema({

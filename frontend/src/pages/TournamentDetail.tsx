@@ -154,6 +154,9 @@ const TournamentDetail = () => {
   const [loadError,     setLoadError]     = useState(false);
   const [notFound,      setNotFound]      = useState(false);
   const [activeTab,     setActiveTab]     = useState<'roster'|'bracket'|'standings'|'manage'>('roster');
+  const [scheduleModal, setScheduleModal] = useState<{ matchId: string } | null>(null);
+  const [scheduleForm, setScheduleForm]   = useState({ date: '', time: '', court: '' });
+  const [scheduling, setScheduling]       = useState(false);
   const [copied,        setCopied]        = useState(false);
 
   // Current logged-in user
@@ -190,6 +193,28 @@ const TournamentDetail = () => {
   }, [id]);
 
   useEffect(() => { load(); }, [load]);
+
+  const handleScheduleMatch = async () => {
+    if (!scheduleModal || !scheduleForm.date || !scheduleForm.time) {
+      showError('Please set date and time'); return;
+    }
+    setScheduling(true);
+    try {
+      const scheduledAt = new Date(`${scheduleForm.date}T${scheduleForm.time}:00`).toISOString();
+      await TournamentAPI.scheduleMatch(id!, scheduleModal.matchId, {
+        scheduledAt,
+        court: scheduleForm.court || undefined,
+      });
+      showSuccess('Match scheduled!');
+      setScheduleModal(null);
+      setScheduleForm({ date: '', time: '', court: '' });
+      load();
+    } catch (e: any) {
+      showError(e.message);
+    } finally {
+      setScheduling(false);
+    }
+  };
 
   const handleGenerateDraw = async () => {
     if (!tournament) return;
@@ -433,6 +458,7 @@ const TournamentDetail = () => {
                   bracket={bracket}
                   onResult={isCreator ? handleResult : undefined}
                   onBye={handleBye}
+                  onSchedule={isCreator ? (matchId) => setScheduleModal({ matchId }) : undefined}
                   currentParticipantId={myParticipant ? String(myParticipant._id) : undefined}
                 />
               </div>
@@ -576,6 +602,50 @@ const TournamentDetail = () => {
           </div>
         </div>
       </main>
+
+      {/* Schedule Match Modal */}
+      {scheduleModal && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 backdrop-blur-sm px-4 pb-8">
+          <div className="bg-white rounded-[2.5rem] p-8 w-full max-w-md space-y-5 shadow-2xl">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-black text-[#0B1F3A] uppercase italic">Schedule Match</h3>
+              <button onClick={() => setScheduleModal(null)} className="text-slate-300 hover:text-slate-500">✕</button>
+            </div>
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black uppercase text-slate-400">Date</label>
+                  <input type="date" value={scheduleForm.date}
+                    onChange={e => setScheduleForm(f => ({ ...f, date: e.target.value }))}
+                    className="w-full h-12 px-4 rounded-xl bg-slate-50 border border-slate-100 font-bold text-sm focus:border-sky-500 outline-none" />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black uppercase text-slate-400">Time</label>
+                  <input type="time" value={scheduleForm.time}
+                    onChange={e => setScheduleForm(f => ({ ...f, time: e.target.value }))}
+                    className="w-full h-12 px-4 rounded-xl bg-slate-50 border border-slate-100 font-bold text-sm focus:border-sky-500 outline-none" />
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black uppercase text-slate-400">Court (optional)</label>
+                <input type="text" placeholder="e.g. Court 1" value={scheduleForm.court}
+                  onChange={e => setScheduleForm(f => ({ ...f, court: e.target.value }))}
+                  className="w-full h-12 px-4 rounded-xl bg-slate-50 border border-slate-100 font-bold text-sm focus:border-sky-500 outline-none" />
+              </div>
+            </div>
+            <div className="flex gap-3 pt-2">
+              <Button onClick={() => setScheduleModal(null)} variant="outline"
+                className="flex-1 h-12 rounded-2xl font-black text-[10px] uppercase border-slate-200">
+                Cancel
+              </Button>
+              <Button onClick={handleScheduleMatch} disabled={scheduling || !scheduleForm.date || !scheduleForm.time}
+                className="flex-1 h-12 rounded-2xl bg-[#0B1F3A] text-white font-black text-[10px] uppercase hover:bg-sky-500 transition-all">
+                {scheduling ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Confirm Schedule'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
