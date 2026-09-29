@@ -101,7 +101,22 @@ const LiveBroadcast = () => {
     // Every scored point, undo, start, end
     socket.on('score:update', (payload: any) => {
       if ((payload.matchId || payload._id) !== id) return;
-      setMatchData((prev: any) => prev ? { ...prev, ...payload } : payload);
+      setMatchData((prev: any) => {
+        if (!prev) return payload;
+        // Only merge known safe score fields to avoid data corruption
+        const update: any = {};
+        if (payload.current_score !== undefined) update.current_score = payload.current_score;
+        if (payload.sets_won !== undefined && Array.isArray(payload.sets_won) &&
+            payload.sets_won[0] <= 5 && payload.sets_won[1] <= 5) {
+          update.sets_won = payload.sets_won;
+        }
+        if (payload.current_game !== undefined) update.current_game = payload.current_game;
+        if (payload.game_scores !== undefined) update.game_scores = payload.game_scores;
+        if (payload.serving !== undefined) update.serving = payload.serving;
+        if (payload.status !== undefined) update.status = payload.status;
+        if (payload.winner !== undefined) update.winner = payload.winner;
+        return { ...prev, ...update };
+      });
     });
 
     socket.on('match:started',   (data: any) => { if (String(data._id) === id) setMatchData(data); });
@@ -124,8 +139,9 @@ const LiveBroadcast = () => {
   const rawSetsWon = matchData?.sets_won;
   const setsWon: [number, number] = (
     Array.isArray(rawSetsWon) && rawSetsWon.length >= 2 &&
-    typeof rawSetsWon[0] === 'number' && typeof rawSetsWon[1] === 'number' &&
-    rawSetsWon[0] <= 5 && rawSetsWon[1] <= 5
+    Number.isInteger(rawSetsWon[0]) && Number.isInteger(rawSetsWon[1]) &&
+    rawSetsWon[0] >= 0 && rawSetsWon[0] <= 5 &&
+    rawSetsWon[1] >= 0 && rawSetsWon[1] <= 5
   ) ? [rawSetsWon[0], rawSetsWon[1]] : [0, 0];
   const serving = (matchData?.serving as 1 | 2) || 1;
   const events: any[] = matchData?.events || [];
