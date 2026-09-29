@@ -112,7 +112,21 @@ const ScoringPage = () => {
       socket.on('match:state',     (d: any) => setMatchData(d));
       socket.on('match:completed', (d: any) => setMatchData(d));
       socket.on('score:update',    (d: any) => {
-        setMatchData((prev: any) => prev ? { ...prev, ...d } : d);
+        setMatchData((prev: any) => {
+          if (!prev) return d;
+          const update: any = {};
+          if (d.current_score !== undefined) update.current_score = d.current_score;
+          if (d.sets_won !== undefined && Array.isArray(d.sets_won) &&
+              d.sets_won.length >= 2 && d.sets_won[0] <= 5 && d.sets_won[1] <= 5) {
+            update.sets_won = d.sets_won;
+          }
+          if (d.current_game !== undefined) update.current_game = d.current_game;
+          if (d.game_scores !== undefined) update.game_scores = d.game_scores;
+          if (d.serving !== undefined) update.serving = d.serving;
+          if (d.status !== undefined) update.status = d.status;
+          if (d.winner !== undefined) update.winner = d.winner;
+          return { ...prev, ...update };
+        });
         if (d.matchCompleted)     showSuccess('Match Complete!');
         else if (d.gameCompleted) showSuccess('Game Complete!');
       });
@@ -308,7 +322,12 @@ const ScoringPage = () => {
   );
 
   const score      = (matchData?.current_score as [number, number]) || [0, 0];
-  const setsWon    = (matchData?.sets_won      as [number, number]) || [0, 0];
+  const rawSets    = matchData?.sets_won;
+  const setsWon: [number, number] = (
+    Array.isArray(rawSets) && rawSets.length >= 2 &&
+    Number.isInteger(rawSets[0]) && Number.isInteger(rawSets[1]) &&
+    rawSets[0] >= 0 && rawSets[0] <= 5 && rawSets[1] >= 0 && rawSets[1] <= 5
+  ) ? [rawSets[0], rawSets[1]] : [0, 0];
   const serving    = (matchData?.serving as 1 | 2)                  || 1;
   const isLive     = matchData?.status === 'live';
   const isDone     = matchData?.status === 'completed';
