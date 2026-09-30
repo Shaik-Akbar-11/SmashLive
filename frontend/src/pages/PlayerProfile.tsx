@@ -30,6 +30,7 @@ const PlayerProfile = () => {
   const [followersCount, setFollowersCount] = useState(0);
   const [followLoading, setFollowLoading]   = useState(false);
   const [currentUserId, setCurrentUserId]   = useState<string | null>(null);
+  const [playerRank, setPlayerRank]         = useState<number | null>(null);
 
   const savedProfile = JSON.parse(localStorage.getItem('userProfile') || 'null');
   const isMe = !id || id === 'me';
@@ -62,6 +63,13 @@ const PlayerProfile = () => {
       setMatchHistory(result.matchHistory || []);
       setTournaments(result.tournaments || []);
       setBadges(result.badges || []);
+
+      // Fetch world rank
+      try {
+        const rankings = await UserAPI.getRankings('world');
+        const idx = rankings.findIndex((u: any) => String(u._id) === String(profileId));
+        if (idx !== -1) setPlayerRank(idx + 1);
+      } catch {}
 
       // Load follow state for other players' profiles
       const myId = currentUserId || savedProfile?._id || savedProfile?.id;
@@ -166,7 +174,7 @@ const PlayerProfile = () => {
       <Navbar />
       <main className="container max-w-lg px-4 py-6 space-y-6">
 
-        <ProfileHero profile={{ ...profileData, winRate }} isOwnProfile={isOwnProfile} />
+        <ProfileHero profile={{ ...profileData, winRate, rank: playerRank ? `#${playerRank}` : '—' }} isOwnProfile={isOwnProfile} />
 
         {/* Quick action */}
         <div className="flex gap-2">
